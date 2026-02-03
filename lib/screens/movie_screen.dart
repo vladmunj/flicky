@@ -537,22 +537,28 @@ class _MovieScreenState extends State<MovieScreen> with SingleTickerProviderStat
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                              if (_currentMovie!.isTvShow) ...[
+                              ...[
                                 const SizedBox(width: 8),
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                   decoration: BoxDecoration(
-                                    color: Colors.purple.withOpacity(0.8),
+                                    color: _currentMovie!.isTvShow 
+                                        ? Colors.purple.withOpacity(0.8)
+                                        : Colors.blue.withOpacity(0.8),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
-                                  child: const Row(
+                                  child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Icon(Icons.tv, color: Colors.white, size: 16),
-                                      SizedBox(width: 4),
+                                      Icon(
+                                        _currentMovie!.isTvShow ? Icons.tv : Icons.movie,
+                                        color: Colors.white,
+                                        size: 16,
+                                      ),
+                                      const SizedBox(width: 4),
                                       Text(
-                                        'Сериал',
-                                        style: TextStyle(
+                                        _currentMovie!.isTvShow ? 'Сериал' : 'Фильм',
+                                        style: const TextStyle(
                                           fontSize: 12,
                                           color: Colors.white,
                                           fontWeight: FontWeight.w600,
@@ -1017,22 +1023,26 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
                           ),
                         ),
                       ),
-                      if (widget.movie.isTvShow) ...[
+                      ...[
                         const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
-                            color: Colors.purple,
+                            color: widget.movie.isTvShow ? Colors.purple : Colors.blue,
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Row(
+                          child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.tv, color: Colors.white, size: 16),
-                              SizedBox(width: 4),
+                              Icon(
+                                widget.movie.isTvShow ? Icons.tv : Icons.movie,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 4),
                               Text(
-                                'Сериал',
-                                style: TextStyle(
+                                widget.movie.isTvShow ? 'Сериал' : 'Фильм',
+                                style: const TextStyle(
                                   fontSize: 12,
                                   color: Colors.white,
                                   fontWeight: FontWeight.w600,
