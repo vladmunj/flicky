@@ -113,7 +113,25 @@ class TMDbService {
 
           if (detailsResponse.statusCode == 200) {
             final Map<String, dynamic> itemJson = jsonDecode(detailsResponse.body);
-            return Movie.fromJson(itemJson, isTvShow: currentIsTvShow);
+            final movie = Movie.fromJson(itemJson, isTvShow: currentIsTvShow);
+            
+            // Получаем трейлер, если доступен
+            final trailerKey = await _getTrailerKey(itemId, currentIsTvShow);
+            if (trailerKey != null) {
+              return Movie(
+                id: movie.id,
+                title: movie.title,
+                overview: movie.overview,
+                posterPath: movie.posterPath,
+                voteAverage: movie.voteAverage,
+                releaseDate: movie.releaseDate,
+                genres: movie.genres,
+                isTvShow: movie.isTvShow,
+                trailerKey: trailerKey,
+              );
+            }
+            
+            return movie;
           }
 
           // Если детали не получены, возвращаем базовую информацию
@@ -130,5 +148,47 @@ class TMDbService {
     } catch (e) {
       throw Exception('Ошибка при получении контента: $e');
     }
+  }
+
+  Future<String?> _getTrailerKey(int id, bool isTvShow) async {
+    try {
+      final videosUrl = isTvShow
+          ? '$baseUrl/tv/$id/videos?api_key=$apiKey&language=ru-RU'
+          : '$baseUrl/movie/$id/videos?api_key=$apiKey&language=ru-RU';
+      
+      final response = await http.get(Uri.parse(videosUrl));
+      
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> jsonData = jsonDecode(response.body);
+        final List<dynamic> results = jsonData['results'] as List<dynamic>;
+        
+        // Ищем трейлер (type: "Trailer" и site: "YouTube")
+        for (var video in results) {
+          final videoData = video as Map<String, dynamic>;
+          final type = videoData['type'] as String?;
+          final site = videoData['site'] as String?;
+          final key = videoData['key'] as String?;
+          
+          if (type == 'Trailer' && site == 'YouTube' && key != null) {
+            return key;
+          }
+        }
+        
+        // Если не нашли трейлер, ищем любой YouTube видео
+        for (var video in results) {
+          final videoData = video as Map<String, dynamic>;
+          final site = videoData['site'] as String?;
+          final key = videoData['key'] as String?;
+          
+          if (site == 'YouTube' && key != null) {
+            return key;
+          }
+        }
+      }
+    } catch (e) {
+      // Игнорируем ошибки при получении трейлера
+    }
+    
+    return null;
   }
 }

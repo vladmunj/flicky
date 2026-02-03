@@ -7,6 +7,7 @@ class Movie {
   final String? releaseDate;
   final List<Genre> genres;
   final bool isTvShow; // Флаг для сериалов
+  final String? trailerKey; // Ключ трейлера на YouTube
 
   Movie({
     required this.id,
@@ -17,6 +18,7 @@ class Movie {
     this.releaseDate,
     this.genres = const [],
     this.isTvShow = false,
+    this.trailerKey,
   });
 
   factory Movie.fromJson(Map<String, dynamic> json, {bool isTvShow = false}) {
@@ -35,7 +37,13 @@ class Movie {
           ?.map((g) => Genre.fromJson(g as Map<String, dynamic>))
           .toList() ?? [],
       isTvShow: isTvShow,
+      trailerKey: null, // Будет установлено отдельно
     );
+  }
+
+  String? get trailerUrl {
+    if (trailerKey == null) return null;
+    return 'https://www.youtube.com/watch?v=$trailerKey';
   }
 
   String? get posterUrl {

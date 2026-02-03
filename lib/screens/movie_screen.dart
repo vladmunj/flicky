@@ -856,6 +856,28 @@ class MovieDetailsScreen extends StatefulWidget {
 }
 
 class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
+  Future<void> _openTrailer(String trailerUrl) async {
+    final uri = Uri.parse(trailerUrl);
+    
+    if (!await canLaunchUrl(uri)) {
+      _showErrorSnackBar('Не удалось открыть трейлер. Проверьте подключение к интернету.');
+      return;
+    }
+
+    try {
+      await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+    } catch (e) {
+      try {
+        await launchUrl(uri, mode: LaunchMode.platformDefault);
+      } catch (e2) {
+        _showErrorSnackBar('Не удалось открыть трейлер. Попробуйте позже.');
+      }
+    }
+  }
+
   Future<void> _openStreamingService(String service, String movieTitle) async {
     String url;
     String serviceName;
@@ -1106,6 +1128,59 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
                     Text(
                       widget.movie.overview!,
                       style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                  
+                  // Трейлер
+                  if (widget.movie.trailerKey != null) ...[
+                    Text(
+                      'Трейлер',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.red.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Material(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(12),
+                        child: InkWell(
+                          onTap: () => _openTrailer(widget.movie.trailerUrl!),
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(
+                                  Icons.play_circle_filled,
+                                  color: Colors.white,
+                                  size: 32,
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  'Смотреть трейлер',
+                                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 24),
                   ],
