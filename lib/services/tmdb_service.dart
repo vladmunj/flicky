@@ -4,6 +4,18 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../models/movie.dart';
 
+class PagedMoviesResult {
+  final List<Movie> items;
+  final bool hasMore;
+  final int nextPage;
+
+  const PagedMoviesResult({
+    required this.items,
+    required this.hasMore,
+    required this.nextPage,
+  });
+}
+
 class TMDbService {
   static const String baseUrl = 'https://api.themoviedb.org/3';
 
@@ -25,6 +37,83 @@ class TMDbService {
     final Map<String, dynamic> jsonData = jsonDecode(response.body);
     final List<dynamic> results = jsonData['genres'] as List<dynamic>;
     return results.map((e) => Genre.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<PagedMoviesResult> discoverMoviesAndTv({
+    required String languageCode,
+    int? year,
+    List<int>? genreIds,
+    double? minRating,
+    int page = 1,
+  }) async {
+    if (apiKey == null || apiKey!.isEmpty || apiKey == 'your_api_key_here') {
+      throw Exception('TMDB_API_KEY не установлен в .env файле');
+    }
+
+    final tmdbLang = languageCode.toLowerCase() == 'ru' ? 'ru-RU' : 'en-US';
+
+    String buildCommonParams({required bool isTv}) {
+      final buffer = StringBuffer();
+      if (genreIds != null && genreIds.isNotEmpty) {
+        buffer.write('&with_genres=${genreIds.join(',')}');
+      }
+      if (year != null) {
+        if (isTv) {
+          buffer.write('&first_air_date_year=$year');
+        } else {
+          buffer.write('&primary_release_year=$year');
+        }
+      }
+      if (minRating != null) {
+        buffer.write('&vote_average.gte=${minRating.toStringAsFixed(1)}&vote_count.gte=50');
+      }
+      return buffer.toString();
+    }
+
+    final movieUrl =
+        '$baseUrl/discover/movie?api_key=$apiKey&language=$tmdbLang&page=$page&sort_by=popularity.desc${buildCommonParams(isTv: false)}';
+    final tvUrl =
+        '$baseUrl/discover/tv?api_key=$apiKey&language=$tmdbLang&page=$page&sort_by=popularity.desc${buildCommonParams(isTv: true)}';
+
+    final responses = await Future.wait([
+      http.get(Uri.parse(movieUrl)),
+      http.get(Uri.parse(tvUrl)),
+    ]);
+
+    final List<Movie> items = [];
+    bool hasMore = false;
+
+    void handleResponse(http.Response response, {required bool isTvShow}) {
+      if (response.statusCode != 200) return;
+      final Map<String, dynamic> jsonData = jsonDecode(response.body);
+      final List<dynamic> results = jsonData['results'] as List<dynamic>;
+      final int totalPages = jsonData['total_pages'] as int? ?? 1;
+
+      if (page < totalPages) {
+        hasMore = true;
+      }
+
+      for (final item in results) {
+        final map = item as Map<String, dynamic>;
+        items.add(Movie.fromJson(map, isTvShow: isTvShow));
+      }
+    }
+
+    handleResponse(responses[0], isTvShow: false);
+    handleResponse(responses[1], isTvShow: true);
+
+    // Сортируем по рейтингу (по убыванию), если рейтинг есть
+    items.sort((a, b) {
+      final ar = a.voteAverage ?? 0;
+      final br = b.voteAverage ?? 0;
+      return br.compareTo(ar);
+    });
+
+    return PagedMoviesResult(
+      items: items,
+      hasMore: hasMore,
+      nextPage: page + 1,
+    );
   }
 
   Future<Movie?> getRandomMovie({

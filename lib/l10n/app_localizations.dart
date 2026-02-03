@@ -71,6 +71,8 @@ class AppLocalizations {
   String get filterApply => isRu ? 'Показать' : 'Apply';
   String get filterReset => isRu ? 'Сбросить' : 'Reset';
   String get filterActiveLabel => isRu ? 'Фильтры включены' : 'Filters active';
+  String get filterResultsTitle => isRu ? 'Результаты' : 'Results';
+  String get filterLoadMore => isRu ? 'Загрузить ещё' : 'Load more';
   String openServiceInternetError(String serviceName) => isRu
       ? 'Не удалось открыть $serviceName. Проверьте подключение к интернету.'
       : 'Could not open $serviceName. Please check your internet connection.';

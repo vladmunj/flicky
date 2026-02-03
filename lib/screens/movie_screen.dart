@@ -287,6 +287,14 @@ class _MovieScreenState extends State<MovieScreen> with SingleTickerProviderStat
             genreIds: _filterGenreIds,
             minRating: _filterMinRating,
           ),
+          onMovieTap: (movie) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => MovieDetailsScreen(movie: movie),
+              ),
+            );
+          },
         ),
       ),
     );
