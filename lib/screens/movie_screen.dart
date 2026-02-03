@@ -251,6 +251,7 @@ class _MovieScreenState extends State<MovieScreen> with SingleTickerProviderStat
       backgroundColor: Colors.transparent,
       builder: (context) => _StreamingPlatformsSheet(
         movieTitle: _currentMovie!.title,
+        movieYear: _currentMovie!.releaseYear,
         onPlatformTap: _openStreamingService,
       ),
     );
@@ -719,10 +720,12 @@ class _ActionButton extends StatelessWidget {
 
 class _StreamingPlatformsSheet extends StatelessWidget {
   final String movieTitle;
+  final String? movieYear;
   final Function(String, String) onPlatformTap;
 
   const _StreamingPlatformsSheet({
     required this.movieTitle,
+    this.movieYear,
     required this.onPlatformTap,
   });
 
@@ -763,7 +766,83 @@ class _StreamingPlatformsSheet extends StatelessWidget {
                     color: Colors.grey[600],
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 12),
+                // Кнопка быстрого поиска в Google
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      String searchQuery = movieTitle;
+                      if (movieYear != null && movieYear!.isNotEmpty) {
+                        searchQuery += ' $movieYear';
+                      }
+                      final url = 'https://www.google.com/search?q=${Uri.encodeComponent(searchQuery)}';
+                      final uri = Uri.parse(url);
+
+                      if (!await canLaunchUrl(uri)) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(context.l10n.searchOpenError)),
+                        );
+                        return;
+                      }
+
+                      try {
+                        await launchUrl(uri, mode: LaunchMode.externalApplication);
+                      } catch (e) {
+                        try {
+                          await launchUrl(uri, mode: LaunchMode.platformDefault);
+                        } catch (e2) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(context.l10n.searchOpenErrorRetry)),
+                          );
+                        }
+                      }
+                    },
+                    icon: const Icon(Icons.search),
+                    label: Text(context.l10n.findInGoogle),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      backgroundColor: Colors.blue,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: Colors.amber.withOpacity(0.7),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(
+                        Icons.info_outline,
+                        color: Colors.amber,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          context.l10n.availabilityWarning,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Colors.amber[900],
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
                 _StreamingButton(
                   icon: Icons.play_circle_outline,
                   label: 'Netflix',
@@ -1292,7 +1371,40 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.amber.withOpacity(0.7),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(
+                          Icons.info_outline,
+                          color: Colors.amber,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            context.l10n.availabilityWarning,
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Colors.amber[900],
+                                  fontWeight: FontWeight.w500,
+                                ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   
                   // Netflix
                   _StreamingButton(
