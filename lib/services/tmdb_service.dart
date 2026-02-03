@@ -440,4 +440,111 @@ class TMDbService {
     
     return null;
   }
+
+  // Curated lists
+  Future<List<Movie>> getCuratedNew({required String languageCode}) async {
+    if (apiKey == null || apiKey!.isEmpty || apiKey == 'your_api_key_here') {
+      throw Exception('TMDB_API_KEY не установлен в .env файле');
+    }
+    final tmdbLang = languageCode.toLowerCase() == 'ru' ? 'ru-RU' : 'en-US';
+    final now = DateTime.now();
+    // Период: с начала предыдущего года до конца предыдущего месяца
+    final fromDate = DateTime(now.year - 1, 1, 1);
+    final toDate = DateTime(now.year, now.month, 0); // последний день предыдущего месяца
+    String formatDate(DateTime d) =>
+        '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+    final commonRange =
+        '&vote_average.gte=7.0&vote_count.gte=100'
+        '&first_air_date.gte=${formatDate(fromDate)}&first_air_date.lte=${formatDate(toDate)}';
+
+    final movieUrl =
+        '$baseUrl/discover/movie?api_key=$apiKey&language=$tmdbLang'
+        '&sort_by=primary_release_date.desc'
+        '&primary_release_date.gte=${formatDate(fromDate)}'
+        '&primary_release_date.lte=${formatDate(toDate)}'
+        '&vote_average.gte=7.0&vote_count.gte=100'
+        '&page=1';
+
+    final tvUrl =
+        '$baseUrl/discover/tv?api_key=$apiKey&language=$tmdbLang'
+        '&sort_by=first_air_date.desc'
+        '$commonRange'
+        '&page=1';
+
+    final responses = await Future.wait([
+      http.get(Uri.parse(movieUrl)),
+      http.get(Uri.parse(tvUrl)),
+    ]);
+
+    final List<Movie> items = [];
+
+    void handleResponse(http.Response response, {required bool isTvShow}) {
+      if (response.statusCode != 200) return;
+      final Map<String, dynamic> jsonData = jsonDecode(response.body);
+      final List<dynamic> results = jsonData['results'] as List<dynamic>;
+      for (final item in results) {
+        items.add(Movie.fromJson(item as Map<String, dynamic>, isTvShow: isTvShow));
+      }
+    }
+
+    handleResponse(responses[0], isTvShow: false);
+    handleResponse(responses[1], isTvShow: true);
+
+    // Сортируем по дате релиза (по убыванию), fallback по рейтингу
+    items.sort((a, b) {
+      final ad = a.releaseDate ?? '';
+      final bd = b.releaseDate ?? '';
+      if (ad.isNotEmpty && bd.isNotEmpty && ad != bd) {
+        return bd.compareTo(ad);
+      }
+      final ar = a.voteAverage ?? 0;
+      final br = b.voteAverage ?? 0;
+      return br.compareTo(ar);
+    });
+
+    return items.take(10).toList();
+  }
+
+  Future<List<Movie>> getCuratedTopRatedMovies({required String languageCode}) async {
+    if (apiKey == null || apiKey!.isEmpty || apiKey == 'your_api_key_here') {
+      throw Exception('TMDB_API_KEY не установлен в .env файле');
+    }
+    final tmdbLang = languageCode.toLowerCase() == 'ru' ? 'ru-RU' : 'en-US';
+
+    final url =
+        '$baseUrl/discover/movie?api_key=$apiKey&language=$tmdbLang&sort_by=vote_average.desc&vote_count.gte=500&page=1';
+
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode != 200) return [];
+
+    final Map<String, dynamic> jsonData = jsonDecode(response.body);
+    final List<dynamic> results = jsonData['results'] as List<dynamic>;
+    return results
+        .map((e) => Movie.fromJson(e as Map<String, dynamic>, isTvShow: false))
+        .take(10)
+        .toList();
+  }
+
+  Future<List<Movie>> getCuratedTopRatedTv({required String languageCode}) async {
+    if (apiKey == null || apiKey!.isEmpty || apiKey == 'your_api_key_here') {
+      throw Exception('TMDB_API_KEY не установлен в .env файле');
+    }
+    final tmdbLang = languageCode.toLowerCase() == 'ru' ? 'ru-RU' : 'en-US';
+    final currentYear = DateTime.now().year;
+    final fromYear = currentYear - 5;
+
+    final url =
+        '$baseUrl/discover/tv?api_key=$apiKey&language=$tmdbLang&sort_by=vote_average.desc&first_air_date.gte=$fromYear-01-01&vote_count.gte=200&page=1';
+
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode != 200) return [];
+
+    final Map<String, dynamic> jsonData = jsonDecode(response.body);
+    final List<dynamic> results = jsonData['results'] as List<dynamic>;
+    return results
+        .map((e) => Movie.fromJson(e as Map<String, dynamic>, isTvShow: true))
+        .take(10)
+        .toList();
+  }
 }

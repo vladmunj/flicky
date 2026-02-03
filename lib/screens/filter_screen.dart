@@ -46,6 +46,11 @@ class _FilterScreenState extends State<FilterScreen> {
   int _currentPage = 1;
   bool _hasSearched = false;
 
+  bool _isLoadingCurated = false;
+  List<Movie> _curatedAction = [];
+  List<Movie> _curatedPopular = [];
+  List<Movie> _curatedRecentTv = [];
+
   @override
   void initState() {
     super.initState();
@@ -63,6 +68,7 @@ class _FilterScreenState extends State<FilterScreen> {
     if (!_didLoadGenres) {
       _didLoadGenres = true;
       _loadGenres();
+      _loadCurated();
     }
   }
 
@@ -250,6 +256,12 @@ class _FilterScreenState extends State<FilterScreen> {
                       ),
                     ],
                   ),
+
+                  // Подборки под фильтрами (до результатов)
+                  if (!_hasSearched) ...[
+                    const SizedBox(height: 24),
+                    _buildCuratedBlocks(l10n),
+                  ],
 
                   // Результаты
                   if (_hasSearched) ...[
@@ -481,6 +493,128 @@ class _FilterScreenState extends State<FilterScreen> {
         _hasMoreResults = false;
       });
     }
+  }
+
+  Future<void> _loadCurated() async {
+    setState(() {
+      _isLoadingCurated = true;
+    });
+    try {
+      final lang = Localizations.localeOf(context).languageCode;
+      final action = await _service.getCuratedNew(languageCode: lang);
+      final popular = await _service.getCuratedTopRatedMovies(languageCode: lang);
+      final recentTv = await _service.getCuratedTopRatedTv(languageCode: lang);
+      setState(() {
+        _curatedAction = action;
+        _curatedPopular = popular;
+        _curatedRecentTv = recentTv;
+        _isLoadingCurated = false;
+      });
+    } catch (_) {
+      setState(() {
+        _isLoadingCurated = false;
+      });
+    }
+  }
+
+  Widget _buildCuratedBlocks(AppLocalizations l10n) {
+    if (_isLoadingCurated) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 16.0),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    List<Widget> children = [];
+    if (_curatedAction.isNotEmpty) {
+      children.add(_buildCuratedSection(l10n.curatedNew, _curatedAction));
+    }
+    if (_curatedPopular.isNotEmpty) {
+      children.add(_buildCuratedSection(l10n.curatedTopMovies, _curatedPopular));
+    }
+    if (_curatedRecentTv.isNotEmpty) {
+      children.add(_buildCuratedSection(l10n.curatedTopTv, _curatedRecentTv));
+    }
+
+    if (children.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: children,
+      ),
+    );
+  }
+
+  Widget _buildCuratedSection(String title, List<Movie> movies) {
+    if (movies.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 210,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: movies.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              itemBuilder: (context, index) {
+                final movie = movies[index];
+                return InkWell(
+                  onTap: () => widget.onMovieTap(movie),
+                  child: SizedBox(
+                    width: 130,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: movie.posterUrl != null
+                              ? Image.network(
+                                  movie.posterUrl!,
+                                  width: 130,
+                                  height: 170,
+                                  fit: BoxFit.cover,
+                                )
+                              : Container(
+                                  width: 130,
+                                  height: 170,
+                                  color: Colors.grey.shade300,
+                                  child: const Icon(Icons.movie,
+                                      color: Colors.white70, size: 40),
+                                ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          movie.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

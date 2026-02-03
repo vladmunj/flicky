@@ -23,10 +23,25 @@ class _SearchScreenState extends State<SearchScreen> {
   int _currentPage = 1;
   bool _hasSearched = false;
 
+  bool _isLoadingCurated = false;
+  bool _didLoadCurated = false;
+  List<Movie> _curatedAction = [];
+  List<Movie> _curatedPopular = [];
+  List<Movie> _curatedRecentTv = [];
+
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_didLoadCurated) {
+      _didLoadCurated = true;
+      _loadCurated();
+    }
   }
 
   Future<void> _search({bool reset = true}) async {
@@ -69,6 +84,28 @@ class _SearchScreenState extends State<SearchScreen> {
       setState(() {
         _isLoading = false;
         _hasMore = false;
+      });
+    }
+  }
+
+  Future<void> _loadCurated() async {
+    setState(() {
+      _isLoadingCurated = true;
+    });
+    try {
+      final lang = Localizations.localeOf(context).languageCode;
+      final action = await _service.getCuratedNew(languageCode: lang);
+      final popular = await _service.getCuratedTopRatedMovies(languageCode: lang);
+      final recentTv = await _service.getCuratedTopRatedTv(languageCode: lang);
+      setState(() {
+        _curatedAction = action;
+        _curatedPopular = popular;
+        _curatedRecentTv = recentTv;
+        _isLoadingCurated = false;
+      });
+    } catch (_) {
+      setState(() {
+        _isLoadingCurated = false;
       });
     }
   }
@@ -119,14 +156,41 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Widget _buildResults(BuildContext context, AppLocalizations l10n) {
     if (!_hasSearched) {
-      return Center(
-        child: Text(
-          l10n.searchHint,
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Colors.grey,
+      if (_isLoadingCurated) {
+        return const Center(child: CircularProgressIndicator());
+      }
+
+      return ListView(
+        children: [
+          if (_curatedAction.isNotEmpty)
+            _buildCuratedSection(
+              title: l10n.curatedNew,
+              movies: _curatedAction,
+            ),
+          if (_curatedPopular.isNotEmpty)
+            _buildCuratedSection(
+              title: l10n.curatedTopMovies,
+              movies: _curatedPopular,
+            ),
+          if (_curatedRecentTv.isNotEmpty)
+            _buildCuratedSection(
+              title: l10n.curatedTopTv,
+              movies: _curatedRecentTv,
+            ),
+          if (_curatedAction.isEmpty &&
+              _curatedPopular.isEmpty &&
+              _curatedRecentTv.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                l10n.searchHint,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey,
+                    ),
               ),
-        ),
+            ),
+        ],
       );
     }
 
@@ -307,6 +371,79 @@ class _SearchScreenState extends State<SearchScreen> {
 
         return const SizedBox.shrink();
       },
+    );
+  }
+
+  Widget _buildCuratedSection({
+    required String title,
+    required List<Movie> movies,
+  }) {
+    if (movies.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 210,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: movies.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              itemBuilder: (context, index) {
+                final movie = movies[index];
+                return InkWell(
+                  onTap: () => widget.onMovieTap(movie),
+                  child: SizedBox(
+                    width: 130,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: movie.posterUrl != null
+                              ? Image.network(
+                                  movie.posterUrl!,
+                                  width: 130,
+                                  height: 170,
+                                  fit: BoxFit.cover,
+                                )
+                              : Container(
+                                  width: 130,
+                                  height: 170,
+                                  color: Colors.grey.shade300,
+                                  child: const Icon(Icons.movie,
+                                      color: Colors.white70, size: 40),
+                                ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          movie.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

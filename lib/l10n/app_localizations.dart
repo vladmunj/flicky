@@ -78,6 +78,14 @@ class AppLocalizations {
   String get filterActiveLabel => isRu ? 'Фильтры включены' : 'Filters active';
   String get filterResultsTitle => isRu ? 'Результаты' : 'Results';
   String get filterLoadMore => isRu ? 'Загрузить ещё' : 'Load more';
+
+  // Curated sections
+  String get curatedNew =>
+      isRu ? 'Новинки' : 'New releases';
+  String get curatedTopMovies =>
+      isRu ? 'Фильмы с высоким рейтингом' : 'Top rated movies';
+  String get curatedTopTv =>
+      isRu ? 'Сериалы с высоким рейтингом' : 'Top rated TV shows';
   String openServiceInternetError(String serviceName) => isRu
       ? 'Не удалось открыть $serviceName. Проверьте подключение к интернету.'
       : 'Could not open $serviceName. Please check your internet connection.';
