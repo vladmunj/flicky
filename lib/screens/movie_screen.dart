@@ -106,7 +106,8 @@ class _MovieScreenState extends State<MovieScreen> with SingleTickerProviderStat
         serviceName = 'HBO Max';
         break;
       case 'amediateka':
-        url = 'https://www.amediateka.ru/search?query=${Uri.encodeComponent(movieTitle)}';
+        final search = '$movieTitle site:amediateka.ru';
+        url = 'https://www.google.com/search?q=${Uri.encodeComponent(search)}';
         serviceName = 'Amediateka';
         break;
       case 'ivi':
