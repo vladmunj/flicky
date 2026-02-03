@@ -8,11 +8,13 @@ class FilterConfig {
   final int? year;
   final List<int> genreIds;
   final double? minRating;
+  final String? countryCode;
 
   const FilterConfig({
     this.year,
     this.genreIds = const [],
     this.minRating,
+    this.countryCode,
   });
 }
 
@@ -35,10 +37,13 @@ class _FilterScreenState extends State<FilterScreen> {
   final Set<int> _selectedGenres = {};
   int? _selectedYear;
   double? _selectedMinRating;
+  String? _selectedCountryCode;
 
   bool _isLoading = false;
   bool _didLoadGenres = false;
+  bool _didLoadCountries = false;
   List<Genre> _genres = [];
+  List<Country> _countries = [];
 
   final List<Movie> _results = [];
   bool _isLoadingResults = false;
@@ -59,6 +64,7 @@ class _FilterScreenState extends State<FilterScreen> {
       _selectedYear = initial.year;
       _selectedGenres.addAll(initial.genreIds);
       _selectedMinRating = initial.minRating;
+      _selectedCountryCode = initial.countryCode;
     }
   }
 
@@ -69,6 +75,10 @@ class _FilterScreenState extends State<FilterScreen> {
       _didLoadGenres = true;
       _loadGenres();
       _loadCurated();
+    }
+    if (!_didLoadCountries) {
+      _didLoadCountries = true;
+      _loadCountries();
     }
   }
 
@@ -83,6 +93,17 @@ class _FilterScreenState extends State<FilterScreen> {
       });
     } catch (_) {
       setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _loadCountries() async {
+    try {
+      final countries = await _service.fetchCountries();
+      setState(() {
+        _countries = countries;
+      });
+    } catch (_) {
+      // Игнорируем ошибки загрузки стран
     }
   }
 
@@ -104,6 +125,7 @@ class _FilterScreenState extends State<FilterScreen> {
         year: null,
         genreIds: [],
         minRating: null,
+        countryCode: null,
       ),
     );
   }
@@ -196,6 +218,44 @@ class _FilterScreenState extends State<FilterScreen> {
                       }).toList(),
                       onChanged: (value) {
                         setState(() => _selectedMinRating = value);
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Страна
+                  Text(
+                    l10n.filterCountry,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: DropdownButton<String?>(
+                      value: _selectedCountryCode,
+                      isExpanded: true,
+                      underline: const SizedBox(),
+                      hint: Text(l10n.filterAnyCountry),
+                      items: [
+                        DropdownMenuItem<String?>(
+                          value: null,
+                          child: Text(l10n.filterAnyCountry),
+                        ),
+                        ..._countries.map(
+                          (country) => DropdownMenuItem<String?>(
+                            value: country.code,
+                            child: Text(country.name),
+                          ),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        setState(() => _selectedCountryCode = value);
                       },
                     ),
                   ),
@@ -472,6 +532,7 @@ class _FilterScreenState extends State<FilterScreen> {
         year: _selectedYear,
         genreIds: _selectedGenres.toList(),
         minRating: _selectedMinRating,
+        countryCode: _selectedCountryCode,
         page: page,
       );
 

@@ -39,11 +39,29 @@ class TMDbService {
     return results.map((e) => Genre.fromJson(e as Map<String, dynamic>)).toList();
   }
 
+  Future<List<Country>> fetchCountries() async {
+    if (apiKey == null || apiKey!.isEmpty || apiKey == 'your_api_key_here') {
+      throw Exception('TMDB_API_KEY не установлен в .env файле');
+    }
+
+    final url = '$baseUrl/configuration/countries?api_key=$apiKey';
+    final response = await http.get(Uri.parse(url));
+
+    if (response.statusCode != 200) {
+      throw Exception('Ошибка при получении стран: ${response.statusCode}');
+    }
+
+    final List<dynamic> jsonData = jsonDecode(response.body) as List<dynamic>;
+    return jsonData.map((e) => Country.fromJson(e as Map<String, dynamic>)).toList()
+      ..sort((a, b) => a.name.compareTo(b.name));
+  }
+
   Future<PagedMoviesResult> discoverMoviesAndTv({
     required String languageCode,
     int? year,
     List<int>? genreIds,
     double? minRating,
+    String? countryCode,
     int page = 1,
   }) async {
     if (apiKey == null || apiKey!.isEmpty || apiKey == 'your_api_key_here') {
@@ -66,6 +84,9 @@ class TMDbService {
       }
       if (minRating != null) {
         buffer.write('&vote_average.gte=${minRating.toStringAsFixed(1)}&vote_count.gte=50');
+      }
+      if (countryCode != null && countryCode.isNotEmpty) {
+        buffer.write('&with_origin_country=$countryCode');
       }
       return buffer.toString();
     }
@@ -180,6 +201,7 @@ class TMDbService {
     int? year,
     List<int>? genreIds,
     double? minRating,
+    String? countryCode,
   }) async {
     if (apiKey == null || apiKey!.isEmpty || apiKey == 'your_api_key_here') {
       throw Exception('TMDB_API_KEY не установлен в .env файле');
@@ -189,7 +211,7 @@ class TMDbService {
       final random = Random();
       final tmdbLang = languageCode.toLowerCase() == 'ru' ? 'ru-RU' : 'en-US';
       final hasFilters =
-          year != null || (genreIds != null && genreIds.isNotEmpty) || minRating != null;
+          year != null || (genreIds != null && genreIds.isNotEmpty) || minRating != null || (countryCode != null && countryCode.isNotEmpty);
       
       // Случайно выбираем между фильмами и сериалами (для фильтрованных тоже оставим шанс сериала)
       final isTvShow = random.nextBool();
@@ -224,6 +246,9 @@ class TMDbService {
             if (minRating != null) {
               // Немного отсеиваем редкие фильмы с малым количеством голосов
               buffer.write('&vote_average.gte=${minRating.toStringAsFixed(1)}&vote_count.gte=50');
+            }
+            if (countryCode != null && countryCode.isNotEmpty) {
+              buffer.write('&with_origin_country=$countryCode');
             }
             if (currentIsTvShow) {
               url =

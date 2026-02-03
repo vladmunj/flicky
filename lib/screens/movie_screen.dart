@@ -27,6 +27,7 @@ class _MovieScreenState extends State<MovieScreen> with SingleTickerProviderStat
   int? _filterYear;
   List<int> _filterGenreIds = [];
   double? _filterMinRating;
+  String? _filterCountryCode;
 
   @override
   void initState() {
@@ -55,6 +56,7 @@ class _MovieScreenState extends State<MovieScreen> with SingleTickerProviderStat
         year: _filterYear,
         genreIds: _filterGenreIds.isEmpty ? null : _filterGenreIds,
         minRating: _filterMinRating,
+        countryCode: _filterCountryCode,
       );
       if (movie != null) {
         setState(() {
@@ -287,6 +289,7 @@ class _MovieScreenState extends State<MovieScreen> with SingleTickerProviderStat
             year: _filterYear,
             genreIds: _filterGenreIds,
             minRating: _filterMinRating,
+            countryCode: _filterCountryCode,
           ),
           onMovieTap: (movie) {
             Navigator.push(
@@ -304,6 +307,7 @@ class _MovieScreenState extends State<MovieScreen> with SingleTickerProviderStat
         _filterYear = result.year;
         _filterGenreIds = result.genreIds;
         _filterMinRating = result.minRating;
+        _filterCountryCode = result.countryCode;
         _shownMovieIds.clear();
       });
       await _loadRandomMovie();
@@ -350,7 +354,7 @@ class _MovieScreenState extends State<MovieScreen> with SingleTickerProviderStat
               ? Builder(
                   builder: (context) {
                     final hasFilters =
-                        _filterYear != null || _filterGenreIds.isNotEmpty || _filterMinRating != null;
+                        _filterYear != null || _filterGenreIds.isNotEmpty || _filterMinRating != null || _filterCountryCode != null;
                     final icon = hasFilters
                         ? const Icon(Icons.warning_amber_rounded, size: 64, color: Colors.amber)
                         : const Icon(Icons.error_outline, size: 64, color: Colors.red);
@@ -525,6 +529,7 @@ class _MovieScreenState extends State<MovieScreen> with SingleTickerProviderStat
         year: _filterYear,
         genreIds: _filterGenreIds.isEmpty ? null : _filterGenreIds,
         minRating: _filterMinRating,
+        countryCode: _filterCountryCode,
       );
       if (movie != null) {
         setState(() {
@@ -623,7 +628,7 @@ class _MovieScreenState extends State<MovieScreen> with SingleTickerProviderStat
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    if (_filterYear != null || _filterGenreIds.isNotEmpty)
+                    if (_filterYear != null || _filterGenreIds.isNotEmpty || _filterMinRating != null || _filterCountryCode != null)
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(

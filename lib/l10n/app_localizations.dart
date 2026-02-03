@@ -73,6 +73,8 @@ class AppLocalizations {
   String get filterAnyYear => isRu ? 'Любой год' : 'Any year';
   String get filterRating => isRu ? 'Рейтинг' : 'Rating';
   String get filterAnyRating => isRu ? 'Любой рейтинг' : 'Any rating';
+  String get filterCountry => isRu ? 'Страна' : 'Country';
+  String get filterAnyCountry => isRu ? 'Любая страна' : 'Any country';
   String get filterApply => isRu ? 'Показать' : 'Apply';
   String get filterReset => isRu ? 'Сбросить' : 'Reset';
   String get filterActiveLabel => isRu ? 'Фильтры включены' : 'Filters active';
