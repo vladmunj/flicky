@@ -878,6 +878,34 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
     }
   }
 
+  Future<void> _openGoogleSearch() async {
+    String searchQuery = widget.movie.title;
+    if (widget.movie.releaseYear != null) {
+      searchQuery += ' ${widget.movie.releaseYear}';
+    }
+    
+    final url = 'https://www.google.com/search?q=${Uri.encodeComponent(searchQuery)}';
+    final uri = Uri.parse(url);
+    
+    if (!await canLaunchUrl(uri)) {
+      _showErrorSnackBar('Не удалось открыть поиск. Проверьте подключение к интернету.');
+      return;
+    }
+
+    try {
+      await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+    } catch (e) {
+      try {
+        await launchUrl(uri, mode: LaunchMode.platformDefault);
+      } catch (e2) {
+        _showErrorSnackBar('Не удалось открыть поиск. Попробуйте позже.');
+      }
+    }
+  }
+
   Future<void> _openStreamingService(String service, String movieTitle) async {
     String url;
     String serviceName;
@@ -1184,6 +1212,57 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
                     ),
                     const SizedBox(height: 24),
                   ],
+                  
+                  // Поиск в Google
+                  Text(
+                    'Поиск',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.blue.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Material(
+                      color: Colors.blue,
+                      borderRadius: BorderRadius.circular(12),
+                      child: InkWell(
+                        onTap: _openGoogleSearch,
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.search,
+                                color: Colors.white,
+                                size: 28,
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                'Найти в Google',
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
                   
                   // Кнопки стриминговых сервисов
                   Text(
