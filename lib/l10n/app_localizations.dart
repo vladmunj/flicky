@@ -60,6 +60,17 @@ class AppLocalizations {
   String get availabilityWarning => isRu
       ? 'Внимание: фильм или сериал может быть недоступен на некоторых площадках. В этом случае вы можете воспользоваться поиском в Google выше.'
       : 'Note: the movie or TV show may not be available on some platforms. If so, you can use the Google search above.';
+
+  // Filters
+  String get filtersTitle => isRu ? 'Фильтры' : 'Filters';
+  String get filterYear => isRu ? 'Год выпуска' : 'Year';
+  String get filterGenre => isRu ? 'Жанры' : 'Genres';
+  String get filterAnyYear => isRu ? 'Любой год' : 'Any year';
+  String get filterRating => isRu ? 'Рейтинг' : 'Rating';
+  String get filterAnyRating => isRu ? 'Любой рейтинг' : 'Any rating';
+  String get filterApply => isRu ? 'Показать' : 'Apply';
+  String get filterReset => isRu ? 'Сбросить' : 'Reset';
+  String get filterActiveLabel => isRu ? 'Фильтры включены' : 'Filters active';
   String openServiceInternetError(String serviceName) => isRu
       ? 'Не удалось открыть $serviceName. Проверьте подключение к интернету.'
       : 'Could not open $serviceName. Please check your internet connection.';
@@ -80,6 +91,15 @@ class AppLocalizations {
   String get apiKeyInvalid => isRu ? 'Неверный API ключ. Проверьте настройки' : 'Invalid API key. Check your settings.';
   String get networkIssue => isRu ? 'Проблема с подключением к интернету' : 'Network connection issue.';
   String get loadFailed => isRu ? 'Не удалось загрузить. Попробуйте снова' : 'Failed to load. Please try again.';
+
+  // Filters – no results
+  String get noResultsForFilters => isRu
+      ? 'Фильмы или сериалы с указанными фильтрами не найдены. Попробуйте изменить фильтры.'
+      : 'No movies or TV shows match the selected filters. Try adjusting your filters.';
+
+  String get filtersWarningTitle => isRu ? 'Ничего не найдено' : 'Nothing found';
+  String get filtersChangeButton =>
+      isRu ? 'Изменить фильтры' : 'Adjust filters';
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

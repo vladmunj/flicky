@@ -9,7 +9,31 @@ class TMDbService {
 
   String? get apiKey => dotenv.env['TMDB_API_KEY'];
 
-  Future<Movie?> getRandomMovie({Set<int>? excludeIds, String languageCode = 'en'}) async {
+  Future<List<Genre>> fetchMovieGenres({String languageCode = 'en'}) async {
+    if (apiKey == null || apiKey!.isEmpty || apiKey == 'your_api_key_here') {
+      throw Exception('TMDB_API_KEY не установлен в .env файле');
+    }
+
+    final tmdbLang = languageCode.toLowerCase() == 'ru' ? 'ru-RU' : 'en-US';
+    final url = '$baseUrl/genre/movie/list?api_key=$apiKey&language=$tmdbLang';
+    final response = await http.get(Uri.parse(url));
+
+    if (response.statusCode != 200) {
+      throw Exception('Ошибка при получении жанров: ${response.statusCode}');
+    }
+
+    final Map<String, dynamic> jsonData = jsonDecode(response.body);
+    final List<dynamic> results = jsonData['genres'] as List<dynamic>;
+    return results.map((e) => Genre.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<Movie?> getRandomMovie({
+    Set<int>? excludeIds,
+    String languageCode = 'en',
+    int? year,
+    List<int>? genreIds,
+    double? minRating,
+  }) async {
     if (apiKey == null || apiKey!.isEmpty || apiKey == 'your_api_key_here') {
       throw Exception('TMDB_API_KEY не установлен в .env файле');
     }
@@ -17,8 +41,10 @@ class TMDbService {
     try {
       final random = Random();
       final tmdbLang = languageCode.toLowerCase() == 'ru' ? 'ru-RU' : 'en-US';
+      final hasFilters =
+          year != null || (genreIds != null && genreIds.isNotEmpty) || minRating != null;
       
-      // Случайно выбираем между фильмами и сериалами
+      // Случайно выбираем между фильмами и сериалами (для фильтрованных тоже оставим шанс сериала)
       final isTvShow = random.nextBool();
       
       // Пробуем несколько подходов для большей случайности
@@ -33,43 +59,74 @@ class TMDbService {
           String url;
           bool currentIsTvShow = isTvShow;
           
-          // Чередуем между фильмами и сериалами
-          if (attempt >= 3) {
-            currentIsTvShow = !isTvShow;
-          }
-          
-          switch (attempt % 3) {
-            case 0:
-              // Популярные
-              final randomPage = random.nextInt(100) + 1;
+          // Если есть фильтры, используем только discover с нужными параметрами
+          if (hasFilters) {
+            final randomPage = random.nextInt(50) + 1;
+            final buffer = StringBuffer();
+            if (genreIds != null && genreIds.isNotEmpty) {
+              buffer.write('&with_genres=${genreIds.join(',')}');
+            }
+            if (year != null) {
               if (currentIsTvShow) {
-                url = '$baseUrl/tv/popular?api_key=$apiKey&language=$tmdbLang&page=$randomPage';
+                buffer.write('&first_air_date_year=$year');
               } else {
-                url = '$baseUrl/movie/popular?api_key=$apiKey&language=$tmdbLang&page=$randomPage';
+                // Для фильмов используем primary_release_year, он точнее работает в discover
+                buffer.write('&primary_release_year=$year');
               }
-              break;
-            case 1:
-              // Топ рейтинговые
-              final randomPage = random.nextInt(50) + 1;
-              if (currentIsTvShow) {
-                url = '$baseUrl/tv/top_rated?api_key=$apiKey&language=$tmdbLang&page=$randomPage';
-              } else {
-                url = '$baseUrl/movie/top_rated?api_key=$apiKey&language=$tmdbLang&page=$randomPage';
-              }
-              break;
-            case 2:
-              // Новые (discover)
-              final randomPage = random.nextInt(50) + 1;
-              final year = DateTime.now().year - random.nextInt(5);
-              if (currentIsTvShow) {
-                url = '$baseUrl/discover/tv?api_key=$apiKey&language=$tmdbLang&page=$randomPage&sort_by=popularity.desc&first_air_date_year=$year';
-              } else {
-                url = '$baseUrl/discover/movie?api_key=$apiKey&language=$tmdbLang&page=$randomPage&sort_by=popularity.desc&year=$year';
-              }
-              break;
-            default:
-              url = '$baseUrl/movie/popular?api_key=$apiKey&language=$tmdbLang&page=1';
-              currentIsTvShow = false;
+            }
+            if (minRating != null) {
+              // Немного отсеиваем редкие фильмы с малым количеством голосов
+              buffer.write('&vote_average.gte=${minRating.toStringAsFixed(1)}&vote_count.gte=50');
+            }
+            if (currentIsTvShow) {
+              url =
+                  '$baseUrl/discover/tv?api_key=$apiKey&language=$tmdbLang&page=$randomPage&sort_by=popularity.desc${buffer.toString()}';
+            } else {
+              url =
+                  '$baseUrl/discover/movie?api_key=$apiKey&language=$tmdbLang&page=$randomPage&sort_by=popularity.desc${buffer.toString()}';
+            }
+          } else {
+            // Без фильтров используем старую стратегию
+            // Чередуем между фильмами и сериалами
+            if (attempt >= 3) {
+              currentIsTvShow = !isTvShow;
+            }
+
+            switch (attempt % 3) {
+              case 0:
+                // Популярные
+                final randomPage = random.nextInt(100) + 1;
+                if (currentIsTvShow) {
+                  url = '$baseUrl/tv/popular?api_key=$apiKey&language=$tmdbLang&page=$randomPage';
+                } else {
+                  url = '$baseUrl/movie/popular?api_key=$apiKey&language=$tmdbLang&page=$randomPage';
+                }
+                break;
+              case 1:
+                // Топ рейтинговые
+                final randomPage = random.nextInt(50) + 1;
+                if (currentIsTvShow) {
+                  url = '$baseUrl/tv/top_rated?api_key=$apiKey&language=$tmdbLang&page=$randomPage';
+                } else {
+                  url = '$baseUrl/movie/top_rated?api_key=$apiKey&language=$tmdbLang&page=$randomPage';
+                }
+                break;
+              case 2:
+                // Новые (discover)
+                final randomPage = random.nextInt(50) + 1;
+                final randomYear = DateTime.now().year - random.nextInt(5);
+                if (currentIsTvShow) {
+                  url =
+                      '$baseUrl/discover/tv?api_key=$apiKey&language=$tmdbLang&page=$randomPage&sort_by=popularity.desc&first_air_date_year=$randomYear';
+                } else {
+                  url =
+                      '$baseUrl/discover/movie?api_key=$apiKey&language=$tmdbLang&page=$randomPage&sort_by=popularity.desc&year=$randomYear';
+                }
+                break;
+              default:
+                url = '$baseUrl/movie/popular?api_key=$apiKey&language=$tmdbLang&page=1';
+                currentIsTvShow = false;
+            }
           }
           
           final response = await http.get(Uri.parse(url));
@@ -115,6 +172,25 @@ class TMDbService {
           if (detailsResponse.statusCode == 200) {
             final Map<String, dynamic> itemJson = jsonDecode(detailsResponse.body);
             final movie = Movie.fromJson(itemJson, isTvShow: currentIsTvShow);
+
+            // Дополнительная защита: проверяем год и рейтинг уже по детальному ответу
+            if (hasFilters) {
+              if (year != null) {
+                final yearStr = movie.releaseYear;
+                final parsedYear = yearStr != null ? int.tryParse(yearStr) : null;
+                if (parsedYear != null && parsedYear != year) {
+                  attempt++;
+                  continue;
+                }
+              }
+              if (minRating != null) {
+                final rating = movie.voteAverage;
+                if (rating != null && rating < minRating) {
+                  attempt++;
+                  continue;
+                }
+              }
+            }
             
             // Получаем трейлер, если доступен
             final trailerKey = await _getTrailerKey(itemId, currentIsTvShow, tmdbLang: tmdbLang);
@@ -136,7 +212,25 @@ class TMDbService {
           }
 
           // Если детали не получены, возвращаем базовую информацию
-          return Movie.fromJson(randomItem, isTvShow: currentIsTvShow);
+          final movie = Movie.fromJson(randomItem, isTvShow: currentIsTvShow);
+          if (hasFilters) {
+            if (year != null) {
+              final yearStr = movie.releaseYear;
+              final parsedYear = yearStr != null ? int.tryParse(yearStr) : null;
+              if (parsedYear != null && parsedYear != year) {
+                attempt++;
+                continue;
+              }
+            }
+            if (minRating != null) {
+              final rating = movie.voteAverage;
+              if (rating != null && rating < minRating) {
+                attempt++;
+                continue;
+              }
+            }
+          }
+          return movie;
         } catch (e) {
           attempt++;
           if (attempt >= maxAttempts) {

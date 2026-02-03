@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/movie.dart';
 import '../services/tmdb_service.dart';
 import '../l10n/app_localizations.dart';
+import 'filter_screen.dart';
 
 class MovieScreen extends StatefulWidget {
   const MovieScreen({super.key});
@@ -22,6 +23,9 @@ class _MovieScreenState extends State<MovieScreen> with SingleTickerProviderStat
   String? _swipeDirection; // Направление свайпа для анимации
   double _dragStartX = 0.0;
   final Set<int> _shownMovieIds = {}; // Кэш показанных фильмов
+  int? _filterYear;
+  List<int> _filterGenreIds = [];
+  double? _filterMinRating;
 
   @override
   void initState() {
@@ -44,7 +48,13 @@ class _MovieScreenState extends State<MovieScreen> with SingleTickerProviderStat
       }
 
       final lang = Localizations.localeOf(context).languageCode;
-      final movie = await _tmdbService.getRandomMovie(excludeIds: _shownMovieIds, languageCode: lang);
+      final movie = await _tmdbService.getRandomMovie(
+        excludeIds: _shownMovieIds,
+        languageCode: lang,
+        year: _filterYear,
+        genreIds: _filterGenreIds.isEmpty ? null : _filterGenreIds,
+        minRating: _filterMinRating,
+      );
       if (movie != null) {
         setState(() {
           _currentMovie = movie;
@@ -53,7 +63,8 @@ class _MovieScreenState extends State<MovieScreen> with SingleTickerProviderStat
         });
       } else {
         setState(() {
-          _errorMessage = context.l10n.loadFailed;
+          final hasFilters = _filterYear != null || _filterGenreIds.isNotEmpty;
+          _errorMessage = hasFilters ? context.l10n.noResultsForFilters : context.l10n.loadFailed;
           _isLoading = false;
         });
       }
@@ -266,6 +277,30 @@ class _MovieScreenState extends State<MovieScreen> with SingleTickerProviderStat
     );
   }
 
+  Future<void> _openFilters() async {
+    final result = await Navigator.push<FilterConfig>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => FilterScreen(
+          initialConfig: FilterConfig(
+            year: _filterYear,
+            genreIds: _filterGenreIds,
+            minRating: _filterMinRating,
+          ),
+        ),
+      ),
+    );
+    if (result != null) {
+      setState(() {
+        _filterYear = result.year;
+        _filterGenreIds = result.genreIds;
+        _filterMinRating = result.minRating;
+        _shownMovieIds.clear();
+      });
+      await _loadRandomMovie();
+    }
+  }
+
   void _showMovieDetails() {
     if (_currentMovie == null) return;
     
@@ -285,33 +320,57 @@ class _MovieScreenState extends State<MovieScreen> with SingleTickerProviderStat
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _errorMessage != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                      const SizedBox(height: 16),
-                      Text(
-                        context.l10n.errorTitle,
-                        style: Theme.of(context).textTheme.headlineSmall,
+              ? Builder(
+                  builder: (context) {
+                    final hasFilters =
+                        _filterYear != null || _filterGenreIds.isNotEmpty || _filterMinRating != null;
+                    final icon = hasFilters
+                        ? const Icon(Icons.warning_amber_rounded, size: 64, color: Colors.amber)
+                        : const Icon(Icons.error_outline, size: 64, color: Colors.red);
+                    final title = hasFilters ? context.l10n.filtersWarningTitle : context.l10n.errorTitle;
+
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          icon,
+                          const SizedBox(height: 16),
+                          Text(
+                            title,
+                            style: Theme.of(context).textTheme.headlineSmall,
+                          ),
+                          const SizedBox(height: 8),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 32),
+                            child: Text(
+                              _errorMessage!,
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          if (hasFilters) ...[
+                            ElevatedButton.icon(
+                              onPressed: _openFilters,
+                              icon: const Icon(Icons.tune),
+                              label: Text(context.l10n.filtersChangeButton),
+                            ),
+                            const SizedBox(height: 12),
+                            ElevatedButton.icon(
+                              onPressed: _loadRandomMovie,
+                              icon: const Icon(Icons.refresh),
+                              label: Text(context.l10n.tryAgain),
+                            ),
+                          ] else
+                            ElevatedButton.icon(
+                              onPressed: _loadRandomMovie,
+                              icon: const Icon(Icons.refresh),
+                              label: Text(context.l10n.tryAgain),
+                            ),
+                        ],
                       ),
-                      const SizedBox(height: 8),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 32),
-                        child: Text(
-                          _errorMessage!,
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      ElevatedButton.icon(
-                        onPressed: _loadRandomMovie,
-                        icon: const Icon(Icons.refresh),
-                        label: Text(context.l10n.tryAgain),
-                      ),
-                    ],
-                  ),
+                    );
+                  },
                 )
               : _currentMovie == null
                   ? Center(child: Text(context.l10n.notFound))
@@ -433,7 +492,13 @@ class _MovieScreenState extends State<MovieScreen> with SingleTickerProviderStat
       }
       
       final lang = Localizations.localeOf(context).languageCode;
-      final movie = await _tmdbService.getRandomMovie(excludeIds: _shownMovieIds, languageCode: lang);
+      final movie = await _tmdbService.getRandomMovie(
+        excludeIds: _shownMovieIds,
+        languageCode: lang,
+        year: _filterYear,
+        genreIds: _filterGenreIds.isEmpty ? null : _filterGenreIds,
+        minRating: _filterMinRating,
+      );
       if (movie != null) {
         setState(() {
           _currentMovie = movie;
@@ -442,7 +507,8 @@ class _MovieScreenState extends State<MovieScreen> with SingleTickerProviderStat
         });
       } else {
         setState(() {
-          _errorMessage = context.l10n.loadFailed;
+          final hasFilters = _filterYear != null || _filterGenreIds.isNotEmpty;
+          _errorMessage = hasFilters ? context.l10n.noResultsForFilters : context.l10n.loadFailed;
           _isLoading = false;
         });
       }
@@ -525,6 +591,45 @@ class _MovieScreenState extends State<MovieScreen> with SingleTickerProviderStat
         SafeArea(
           child: Column(
             children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    if (_filterYear != null || _filterGenreIds.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(color: Colors.white24),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.tune, size: 16, color: Colors.white),
+                            const SizedBox(width: 6),
+                            Text(
+                              context.l10n.filterActiveLabel,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      const SizedBox.shrink(),
+                    IconButton(
+                      icon: const Icon(Icons.tune, color: Colors.white),
+                      tooltip: context.l10n.filtersTitle,
+                      onPressed: _openFilters,
+                    ),
+                  ],
+                ),
+              ),
               const Spacer(),
               // Блок с названием и кнопками с полупрозрачным фоном
               Container(
