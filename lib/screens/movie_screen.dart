@@ -20,6 +20,7 @@ class _MovieScreenState extends State<MovieScreen> with SingleTickerProviderStat
   double _swipeOffset = 0.0;
   String? _swipeDirection; // Направление свайпа для анимации
   double _dragStartX = 0.0;
+  final Set<int> _shownMovieIds = {}; // Кэш показанных фильмов
 
   @override
   void initState() {
@@ -34,11 +35,24 @@ class _MovieScreenState extends State<MovieScreen> with SingleTickerProviderStat
     });
 
     try {
-      final movie = await _tmdbService.getRandomMovie();
-      setState(() {
-        _currentMovie = movie;
-        _isLoading = false;
-      });
+      // Если показано много фильмов, очищаем кэш для разнообразия
+      if (_shownMovieIds.length > 50) {
+        _shownMovieIds.clear();
+      }
+      
+      final movie = await _tmdbService.getRandomMovie(excludeIds: _shownMovieIds);
+      if (movie != null) {
+        setState(() {
+          _currentMovie = movie;
+          _shownMovieIds.add(movie.id); // Добавляем в кэш
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _errorMessage = 'Не удалось загрузить фильм';
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       String errorMsg = e.toString();
       // Улучшаем сообщение об ошибке
@@ -394,11 +408,24 @@ class _MovieScreenState extends State<MovieScreen> with SingleTickerProviderStat
     });
 
     try {
-      final movie = await _tmdbService.getRandomMovie();
-      setState(() {
-        _currentMovie = movie;
-        _isLoading = false;
-      });
+      // Если показано много фильмов, очищаем кэш для разнообразия
+      if (_shownMovieIds.length > 50) {
+        _shownMovieIds.clear();
+      }
+      
+      final movie = await _tmdbService.getRandomMovie(excludeIds: _shownMovieIds);
+      if (movie != null) {
+        setState(() {
+          _currentMovie = movie;
+          _shownMovieIds.add(movie.id); // Добавляем в кэш
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _errorMessage = 'Не удалось загрузить фильм';
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       String errorMsg = e.toString();
       if (errorMsg.contains('TMDB_API_KEY')) {
