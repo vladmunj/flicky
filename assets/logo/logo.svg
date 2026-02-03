@@ -1,0 +1,55 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Фон -->
+  <defs>
+    <radialGradient id="bgGrad" cx="50%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#1F2937"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </radialGradient>
+    <linearGradient id="cubeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#A855F7"/>
+      <stop offset="100%" stop-color="#EC4899"/>
+    </linearGradient>
+  </defs>
+
+  <circle cx="256" cy="256" r="240" fill="url(#bgGrad)"/>
+
+  <!-- Мягкое свечение за кубом -->
+  <ellipse cx="256" cy="280" rx="160" ry="120" fill="#EC4899" opacity="0.15"/>
+
+  <!-- Куб: верхняя грань (плёнка) -->
+  <path d="M180 190 L292 160 L352 200 L240 230 Z"
+        fill="url(#cubeGrad)" />
+
+  <!-- Перфорация на верхней грани -->
+  <g fill="#0F172A" opacity="0.6">
+    <circle cx="200" cy="195" r="4"/>
+    <circle cx="225" cy="188" r="4"/>
+    <circle cx="250" cy="182" r="4"/>
+    <circle cx="275" cy="176" r="4"/>
+    <circle cx="300" cy="170" r="4"/>
+  </g>
+
+  <!-- Фронтальная грань с play-иконкой -->
+  <path d="M180 210 L240 240 L240 330 L180 300 Z"
+        fill="url(#cubeGrad)"/>
+
+  <!-- Play-треугольник -->
+  <polygon points="198,230 228,248 198,266" fill="#F9FAFB"/>
+
+  <!-- Боковая грань (карточки/постеры) -->
+  <path d="M240 240 L352 210 L352 300 L240 330 Z"
+        fill="url(#cubeGrad)"/>
+
+  <!-- Вертикальные полосы на боковой грани -->
+  <g opacity="0.35" stroke="#F9FAFB" stroke-width="3">
+    <line x1="262" y1="230" x2="262" y2="320"/>
+    <line x1="290" y1="222" x2="290" y2="312"/>
+    <line x1="318" y1="214" x2="318" y2="304"/>
+  </g>
+
+  <!-- Боке-точки -->
+  <circle cx="120" cy="150" r="10" fill="#EC4899" opacity="0.5"/>
+  <circle cx="380" cy="140" r="8" fill="#A855F7" opacity="0.6"/>
+  <circle cx="390" cy="330" r="12" fill="#EC4899" opacity="0.4"/>
+  <circle cx="130" cy="340" r="9" fill="#A855F7" opacity="0.4"/>
+</svg>
