@@ -36,43 +36,179 @@ class _MovieScreenState extends State<MovieScreen> {
         _isLoading = false;
       });
     } catch (e) {
+      String errorMsg = e.toString();
+      // Улучшаем сообщение об ошибке
+      if (errorMsg.contains('TMDB_API_KEY')) {
+        errorMsg = 'API ключ не установлен. Проверьте файл .env';
+      } else if (errorMsg.contains('401') || errorMsg.contains('403')) {
+        errorMsg = 'Неверный API ключ. Проверьте настройки';
+      } else if (errorMsg.contains('network') || errorMsg.contains('Internet')) {
+        errorMsg = 'Проблема с подключением к интернету';
+      } else {
+        errorMsg = 'Не удалось загрузить фильм. Попробуйте снова';
+      }
+      
       setState(() {
-        _errorMessage = e.toString();
+        _errorMessage = errorMsg;
         _isLoading = false;
       });
+      
+      // Показываем уведомление об ошибке
+      _showErrorSnackBar(errorMsg);
     }
   }
 
   Future<void> _openStreamingService(String service, String movieTitle) async {
     String url;
+    String serviceName;
     
     switch (service.toLowerCase()) {
       case 'netflix':
         url = 'https://www.netflix.com/search?q=${Uri.encodeComponent(movieTitle)}';
+        serviceName = 'Netflix';
         break;
       case 'amazon':
-        url = 'https://www.amazon.com/s?k=${Uri.encodeComponent(movieTitle)}&i=prime-instant-video';
+        url = 'https://www.primevideo.com/search/ref=atv_sr?phrase=${Uri.encodeComponent(movieTitle)}';
+        serviceName = 'Amazon Prime Video';
         break;
       case 'apple':
         url = 'https://tv.apple.com/search?term=${Uri.encodeComponent(movieTitle)}';
+        serviceName = 'Apple TV';
         break;
       case 'google':
         url = 'https://play.google.com/store/search?q=${Uri.encodeComponent(movieTitle)}&c=movies';
+        serviceName = 'Google Play Movies';
         break;
       default:
         return;
     }
 
+    debugPrint('🔗 [Flicky] Попытка открыть $serviceName');
+    debugPrint('🔗 [Flicky] URL: $url');
+    debugPrint('🔗 [Flicky] Фильм: $movieTitle');
+
     final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Не удалось открыть $service')),
-        );
-      }
+    
+    // На Android canLaunchUrl может быть ненадежным, поэтому проверяем, но не блокируем
+    final canLaunch = await canLaunchUrl(uri);
+    debugPrint('🔗 [Flicky] canLaunchUrl: $canLaunch');
+    
+    if (!canLaunch) {
+      debugPrint('⚠️ [Flicky] canLaunchUrl вернул false, но продолжаем попытку открытия (может быть ложное срабатывание на Android)');
     }
+
+    // Сначала пытаемся открыть в приложении
+    bool openedInApp = false;
+    debugPrint('🔗 [Flicky] Попытка открыть в приложении (externalNonBrowserApplication)...');
+    try {
+      openedInApp = await launchUrl(
+        uri,
+        mode: LaunchMode.externalNonBrowserApplication,
+      );
+      debugPrint('🔗 [Flicky] externalNonBrowserApplication результат: $openedInApp');
+    } catch (e) {
+      debugPrint('❌ [Flicky] Ошибка при открытии в приложении: $e');
+      debugPrint('❌ [Flicky] Тип ошибки: ${e.runtimeType}');
+    }
+
+    // Если не открылось в приложении, открываем в браузере
+    if (!openedInApp) {
+      debugPrint('🔗 [Flicky] Приложение не открылось, пробуем браузер...');
+      try {
+        debugPrint('🔗 [Flicky] Попытка открыть в браузере (externalApplication)...');
+        final openedInBrowser = await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
+        );
+        debugPrint('🔗 [Flicky] externalApplication результат: $openedInBrowser');
+        
+        if (!openedInBrowser) {
+          debugPrint('❌ [Flicky] externalApplication вернул false, пробуем inAppWebView...');
+          // Если externalApplication не сработал, пробуем inAppWebView (встроенный браузер)
+          try {
+            final openedWebView = await launchUrl(uri, mode: LaunchMode.inAppWebView);
+            debugPrint('🔗 [Flicky] inAppWebView результат: $openedWebView');
+            if (!openedWebView) {
+              debugPrint('❌ [Flicky] inAppWebView вернул false, пробуем platformDefault...');
+              // Если inAppWebView не сработал, пробуем platformDefault
+              try {
+                final openedPlatform = await launchUrl(uri, mode: LaunchMode.platformDefault);
+                debugPrint('🔗 [Flicky] platformDefault результат: $openedPlatform');
+                if (!openedPlatform) {
+                  debugPrint('❌ [Flicky] Все попытки открытия вернули false');
+                  _showErrorSnackBar('Не удалось открыть $serviceName. Убедитесь, что у вас установлен браузер.');
+                } else {
+                  debugPrint('✅ [Flicky] Успешно открыто через platformDefault');
+                }
+              } catch (e) {
+                debugPrint('❌ [Flicky] Ошибка при platformDefault: $e');
+                debugPrint('❌ [Flicky] Тип ошибки: ${e.runtimeType}');
+                _showErrorSnackBar('Не удалось открыть $serviceName. Убедитесь, что у вас установлен браузер.');
+              }
+            } else {
+              debugPrint('✅ [Flicky] Успешно открыто через inAppWebView');
+            }
+          } catch (e) {
+            debugPrint('❌ [Flicky] Ошибка при inAppWebView: $e');
+            debugPrint('❌ [Flicky] Тип ошибки: ${e.runtimeType}');
+            // Пробуем platformDefault как последний вариант
+            try {
+              final openedPlatform = await launchUrl(uri, mode: LaunchMode.platformDefault);
+              debugPrint('🔗 [Flicky] platformDefault (fallback) результат: $openedPlatform');
+              if (!openedPlatform) {
+                _showErrorSnackBar('Не удалось открыть $serviceName. Убедитесь, что у вас установлен браузер.');
+              }
+            } catch (e2) {
+              debugPrint('❌ [Flicky] Ошибка при platformDefault (fallback): $e2');
+              _showErrorSnackBar('Не удалось открыть $serviceName. Убедитесь, что у вас установлен браузер.');
+            }
+          }
+        } else {
+          debugPrint('✅ [Flicky] Успешно открыто в браузере через externalApplication');
+        }
+      } catch (e) {
+        debugPrint('❌ [Flicky] Ошибка при открытии в браузере: $e');
+        debugPrint('❌ [Flicky] Тип ошибки: ${e.runtimeType}');
+        _showErrorSnackBar('Не удалось открыть $serviceName. Попробуйте позже.');
+      }
+    } else {
+      debugPrint('✅ [Flicky] Успешно открыто в приложении');
+    }
+  }
+
+  void _showErrorSnackBar(String message) {
+    if (!mounted) return;
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(
+              Icons.error_outline,
+              color: Colors.white,
+              size: 24,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.red[600],
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   @override
