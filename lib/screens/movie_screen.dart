@@ -3,6 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/movie.dart';
 import '../services/tmdb_service.dart';
+import '../l10n/app_localizations.dart';
 
 class MovieScreen extends StatefulWidget {
   const MovieScreen({super.key});
@@ -25,7 +26,9 @@ class _MovieScreenState extends State<MovieScreen> with SingleTickerProviderStat
   @override
   void initState() {
     super.initState();
-    _loadRandomMovie();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadRandomMovie();
+    });
   }
 
   Future<void> _loadRandomMovie() async {
@@ -39,8 +42,9 @@ class _MovieScreenState extends State<MovieScreen> with SingleTickerProviderStat
       if (_shownMovieIds.length > 50) {
         _shownMovieIds.clear();
       }
-      
-      final movie = await _tmdbService.getRandomMovie(excludeIds: _shownMovieIds);
+
+      final lang = Localizations.localeOf(context).languageCode;
+      final movie = await _tmdbService.getRandomMovie(excludeIds: _shownMovieIds, languageCode: lang);
       if (movie != null) {
         setState(() {
           _currentMovie = movie;
@@ -49,7 +53,7 @@ class _MovieScreenState extends State<MovieScreen> with SingleTickerProviderStat
         });
       } else {
         setState(() {
-          _errorMessage = 'Не удалось загрузить фильм';
+          _errorMessage = context.l10n.loadFailed;
           _isLoading = false;
         });
       }
@@ -57,13 +61,13 @@ class _MovieScreenState extends State<MovieScreen> with SingleTickerProviderStat
       String errorMsg = e.toString();
       // Улучшаем сообщение об ошибке
       if (errorMsg.contains('TMDB_API_KEY')) {
-        errorMsg = 'API ключ не установлен. Проверьте файл .env';
+        errorMsg = context.l10n.apiKeyMissing;
       } else if (errorMsg.contains('401') || errorMsg.contains('403')) {
-        errorMsg = 'Неверный API ключ. Проверьте настройки';
+        errorMsg = context.l10n.apiKeyInvalid;
       } else if (errorMsg.contains('network') || errorMsg.contains('Internet')) {
-        errorMsg = 'Проблема с подключением к интернету';
+        errorMsg = context.l10n.networkIssue;
       } else {
-        errorMsg = 'Не удалось загрузить фильм. Попробуйте снова';
+        errorMsg = context.l10n.loadFailed;
       }
       
       setState(() {
@@ -158,14 +162,14 @@ class _MovieScreenState extends State<MovieScreen> with SingleTickerProviderStat
                 debugPrint('🔗 [Flicky] platformDefault результат: $openedPlatform');
                 if (!openedPlatform) {
                   debugPrint('❌ [Flicky] Все попытки открытия вернули false');
-                  _showErrorSnackBar('Не удалось открыть $serviceName. Убедитесь, что у вас установлен браузер.');
+                  _showErrorSnackBar(context.l10n.openServiceBrowserMissing(serviceName));
                 } else {
                   debugPrint('✅ [Flicky] Успешно открыто через platformDefault');
                 }
               } catch (e) {
                 debugPrint('❌ [Flicky] Ошибка при platformDefault: $e');
                 debugPrint('❌ [Flicky] Тип ошибки: ${e.runtimeType}');
-                _showErrorSnackBar('Не удалось открыть $serviceName. Убедитесь, что у вас установлен браузер.');
+                _showErrorSnackBar(context.l10n.openServiceBrowserMissing(serviceName));
               }
             } else {
               debugPrint('✅ [Flicky] Успешно открыто через inAppWebView');
@@ -178,11 +182,11 @@ class _MovieScreenState extends State<MovieScreen> with SingleTickerProviderStat
               final openedPlatform = await launchUrl(uri, mode: LaunchMode.platformDefault);
               debugPrint('🔗 [Flicky] platformDefault (fallback) результат: $openedPlatform');
               if (!openedPlatform) {
-                _showErrorSnackBar('Не удалось открыть $serviceName. Убедитесь, что у вас установлен браузер.');
+                _showErrorSnackBar(context.l10n.openServiceBrowserMissing(serviceName));
               }
             } catch (e2) {
               debugPrint('❌ [Flicky] Ошибка при platformDefault (fallback): $e2');
-              _showErrorSnackBar('Не удалось открыть $serviceName. Убедитесь, что у вас установлен браузер.');
+              _showErrorSnackBar(context.l10n.openServiceBrowserMissing(serviceName));
             }
           }
         } else {
@@ -191,7 +195,7 @@ class _MovieScreenState extends State<MovieScreen> with SingleTickerProviderStat
       } catch (e) {
         debugPrint('❌ [Flicky] Ошибка при открытии в браузере: $e');
         debugPrint('❌ [Flicky] Тип ошибки: ${e.runtimeType}');
-        _showErrorSnackBar('Не удалось открыть $serviceName. Попробуйте позже.');
+        _showErrorSnackBar(context.l10n.openServiceRetry(serviceName));
       }
     } else {
       debugPrint('✅ [Flicky] Успешно открыто в приложении');
@@ -273,7 +277,7 @@ class _MovieScreenState extends State<MovieScreen> with SingleTickerProviderStat
                       const Icon(Icons.error_outline, size: 64, color: Colors.red),
                       const SizedBox(height: 16),
                       Text(
-                        'Ошибка',
+                        context.l10n.errorTitle,
                         style: Theme.of(context).textTheme.headlineSmall,
                       ),
                       const SizedBox(height: 8),
@@ -289,13 +293,13 @@ class _MovieScreenState extends State<MovieScreen> with SingleTickerProviderStat
                       ElevatedButton.icon(
                         onPressed: _loadRandomMovie,
                         icon: const Icon(Icons.refresh),
-                        label: const Text('Попробовать снова'),
+                        label: Text(context.l10n.tryAgain),
                       ),
                     ],
                   ),
                 )
               : _currentMovie == null
-                  ? const Center(child: Text('Фильм не найден'))
+                  ? Center(child: Text(context.l10n.notFound))
                   : _buildMainScreenWithSwipe(),
     );
   }
@@ -413,7 +417,8 @@ class _MovieScreenState extends State<MovieScreen> with SingleTickerProviderStat
         _shownMovieIds.clear();
       }
       
-      final movie = await _tmdbService.getRandomMovie(excludeIds: _shownMovieIds);
+      final lang = Localizations.localeOf(context).languageCode;
+      final movie = await _tmdbService.getRandomMovie(excludeIds: _shownMovieIds, languageCode: lang);
       if (movie != null) {
         setState(() {
           _currentMovie = movie;
@@ -422,20 +427,20 @@ class _MovieScreenState extends State<MovieScreen> with SingleTickerProviderStat
         });
       } else {
         setState(() {
-          _errorMessage = 'Не удалось загрузить фильм';
+          _errorMessage = context.l10n.loadFailed;
           _isLoading = false;
         });
       }
     } catch (e) {
       String errorMsg = e.toString();
       if (errorMsg.contains('TMDB_API_KEY')) {
-        errorMsg = 'API ключ не установлен. Проверьте файл .env';
+        errorMsg = context.l10n.apiKeyMissing;
       } else if (errorMsg.contains('401') || errorMsg.contains('403')) {
-        errorMsg = 'Неверный API ключ. Проверьте настройки';
+        errorMsg = context.l10n.apiKeyInvalid;
       } else if (errorMsg.contains('network') || errorMsg.contains('Internet')) {
-        errorMsg = 'Проблема с подключением к интернету';
+        errorMsg = context.l10n.networkIssue;
       } else {
-        errorMsg = 'Не удалось загрузить фильм. Попробуйте снова';
+        errorMsg = context.l10n.loadFailed;
       }
       
       setState(() {
@@ -557,7 +562,7 @@ class _MovieScreenState extends State<MovieScreen> with SingleTickerProviderStat
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
-                                        _currentMovie!.isTvShow ? 'Сериал' : 'Фильм',
+                                        _currentMovie!.isTvShow ? context.l10n.badgeTv : context.l10n.badgeMovie,
                                         style: const TextStyle(
                                           fontSize: 12,
                                           color: Colors.white,
@@ -741,7 +746,7 @@ class _StreamingPlatformsSheet extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Где смотреть',
+                  context.l10n.whereToWatchTitle,
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -860,7 +865,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
     final uri = Uri.parse(trailerUrl);
     
     if (!await canLaunchUrl(uri)) {
-      _showErrorSnackBar('Не удалось открыть трейлер. Проверьте подключение к интернету.');
+      _showErrorSnackBar(context.l10n.trailerOpenError);
       return;
     }
 
@@ -873,7 +878,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
       try {
         await launchUrl(uri, mode: LaunchMode.platformDefault);
       } catch (e2) {
-        _showErrorSnackBar('Не удалось открыть трейлер. Попробуйте позже.');
+        _showErrorSnackBar(context.l10n.trailerOpenErrorRetry);
       }
     }
   }
@@ -888,7 +893,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
     final uri = Uri.parse(url);
     
     if (!await canLaunchUrl(uri)) {
-      _showErrorSnackBar('Не удалось открыть поиск. Проверьте подключение к интернету.');
+      _showErrorSnackBar(context.l10n.searchOpenError);
       return;
     }
 
@@ -901,7 +906,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
       try {
         await launchUrl(uri, mode: LaunchMode.platformDefault);
       } catch (e2) {
-        _showErrorSnackBar('Не удалось открыть поиск. Попробуйте позже.');
+        _showErrorSnackBar(context.l10n.searchOpenErrorRetry);
       }
     }
   }
@@ -939,7 +944,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
     final canLaunch = await canLaunchUrl(uri);
     
     if (!canLaunch) {
-      _showErrorSnackBar('Не удалось открыть $serviceName. Проверьте подключение к интернету.');
+      _showErrorSnackBar(context.l10n.openServiceInternetError(serviceName));
       return;
     }
 
@@ -967,19 +972,19 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
               try {
                 await launchUrl(uri, mode: LaunchMode.platformDefault);
               } catch (e) {
-                _showErrorSnackBar('Не удалось открыть $serviceName. Убедитесь, что у вас установлен браузер.');
+                _showErrorSnackBar(context.l10n.openServiceBrowserMissing(serviceName));
               }
             }
           } catch (e) {
             try {
               await launchUrl(uri, mode: LaunchMode.platformDefault);
             } catch (e2) {
-              _showErrorSnackBar('Не удалось открыть $serviceName. Убедитесь, что у вас установлен браузер.');
+              _showErrorSnackBar(context.l10n.openServiceBrowserMissing(serviceName));
             }
           }
         }
       } catch (e) {
-        _showErrorSnackBar('Не удалось открыть $serviceName. Попробуйте позже.');
+      _showErrorSnackBar(context.l10n.openServiceRetry(serviceName));
       }
     }
   }
@@ -1023,7 +1028,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.movie.isTvShow ? 'Информация о сериале' : 'Информация о фильме'),
+        title: Text(widget.movie.isTvShow ? context.l10n.detailsTvTitle : context.l10n.detailsMovieTitle),
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -1091,7 +1096,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                widget.movie.isTvShow ? 'Сериал' : 'Фильм',
+                                widget.movie.isTvShow ? context.l10n.badgeTv : context.l10n.badgeMovie,
                                 style: const TextStyle(
                                   fontSize: 12,
                                   color: Colors.white,
@@ -1147,7 +1152,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
                   // Описание
                   if (widget.movie.overview != null && widget.movie.overview!.isNotEmpty) ...[
                     Text(
-                      'Описание',
+                      context.l10n.overviewTitle,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -1163,7 +1168,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
                   // Трейлер
                   if (widget.movie.trailerKey != null) ...[
                     Text(
-                      'Трейлер',
+                      context.l10n.trailerTitle,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -1198,7 +1203,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
                                 ),
                                 const SizedBox(width: 12),
                                 Text(
-                                  'Смотреть трейлер',
+                                context.l10n.watchTrailer,
                                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
@@ -1215,7 +1220,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
                   
                   // Поиск в Google
                   Text(
-                    'Поиск',
+                    context.l10n.searchTitle,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -1250,7 +1255,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
                               ),
                               const SizedBox(width: 12),
                               Text(
-                                'Найти в Google',
+                                context.l10n.findInGoogle,
                                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
@@ -1266,7 +1271,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
                   
                   // Кнопки стриминговых сервисов
                   Text(
-                    'Смотреть на:',
+                    context.l10n.watchOnTitle,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),

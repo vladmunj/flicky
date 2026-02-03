@@ -9,13 +9,14 @@ class TMDbService {
 
   String? get apiKey => dotenv.env['TMDB_API_KEY'];
 
-  Future<Movie?> getRandomMovie({Set<int>? excludeIds}) async {
+  Future<Movie?> getRandomMovie({Set<int>? excludeIds, String languageCode = 'en'}) async {
     if (apiKey == null || apiKey!.isEmpty || apiKey == 'your_api_key_here') {
       throw Exception('TMDB_API_KEY не установлен в .env файле');
     }
 
     try {
       final random = Random();
+      final tmdbLang = languageCode.toLowerCase() == 'ru' ? 'ru-RU' : 'en-US';
       
       // Случайно выбираем между фильмами и сериалами
       final isTvShow = random.nextBool();
@@ -42,18 +43,18 @@ class TMDbService {
               // Популярные
               final randomPage = random.nextInt(100) + 1;
               if (currentIsTvShow) {
-                url = '$baseUrl/tv/popular?api_key=$apiKey&language=ru-RU&page=$randomPage';
+                url = '$baseUrl/tv/popular?api_key=$apiKey&language=$tmdbLang&page=$randomPage';
               } else {
-                url = '$baseUrl/movie/popular?api_key=$apiKey&language=ru-RU&page=$randomPage';
+                url = '$baseUrl/movie/popular?api_key=$apiKey&language=$tmdbLang&page=$randomPage';
               }
               break;
             case 1:
               // Топ рейтинговые
               final randomPage = random.nextInt(50) + 1;
               if (currentIsTvShow) {
-                url = '$baseUrl/tv/top_rated?api_key=$apiKey&language=ru-RU&page=$randomPage';
+                url = '$baseUrl/tv/top_rated?api_key=$apiKey&language=$tmdbLang&page=$randomPage';
               } else {
-                url = '$baseUrl/movie/top_rated?api_key=$apiKey&language=ru-RU&page=$randomPage';
+                url = '$baseUrl/movie/top_rated?api_key=$apiKey&language=$tmdbLang&page=$randomPage';
               }
               break;
             case 2:
@@ -61,13 +62,13 @@ class TMDbService {
               final randomPage = random.nextInt(50) + 1;
               final year = DateTime.now().year - random.nextInt(5);
               if (currentIsTvShow) {
-                url = '$baseUrl/discover/tv?api_key=$apiKey&language=ru-RU&page=$randomPage&sort_by=popularity.desc&first_air_date_year=$year';
+                url = '$baseUrl/discover/tv?api_key=$apiKey&language=$tmdbLang&page=$randomPage&sort_by=popularity.desc&first_air_date_year=$year';
               } else {
-                url = '$baseUrl/discover/movie?api_key=$apiKey&language=ru-RU&page=$randomPage&sort_by=popularity.desc&year=$year';
+                url = '$baseUrl/discover/movie?api_key=$apiKey&language=$tmdbLang&page=$randomPage&sort_by=popularity.desc&year=$year';
               }
               break;
             default:
-              url = '$baseUrl/movie/popular?api_key=$apiKey&language=ru-RU&page=1';
+              url = '$baseUrl/movie/popular?api_key=$apiKey&language=$tmdbLang&page=1';
               currentIsTvShow = false;
           }
           
@@ -106,8 +107,8 @@ class TMDbService {
 
           // Получаем детальную информацию
           final detailsUrl = currentIsTvShow
-              ? '$baseUrl/tv/$itemId?api_key=$apiKey&language=ru-RU'
-              : '$baseUrl/movie/$itemId?api_key=$apiKey&language=ru-RU';
+              ? '$baseUrl/tv/$itemId?api_key=$apiKey&language=$tmdbLang'
+              : '$baseUrl/movie/$itemId?api_key=$apiKey&language=$tmdbLang';
           
           final detailsResponse = await http.get(Uri.parse(detailsUrl));
 
@@ -116,7 +117,7 @@ class TMDbService {
             final movie = Movie.fromJson(itemJson, isTvShow: currentIsTvShow);
             
             // Получаем трейлер, если доступен
-            final trailerKey = await _getTrailerKey(itemId, currentIsTvShow);
+            final trailerKey = await _getTrailerKey(itemId, currentIsTvShow, tmdbLang: tmdbLang);
             if (trailerKey != null) {
               return Movie(
                 id: movie.id,
@@ -150,13 +151,20 @@ class TMDbService {
     }
   }
 
-  Future<String?> _getTrailerKey(int id, bool isTvShow) async {
+  Future<String?> _getTrailerKey(int id, bool isTvShow, {required String tmdbLang}) async {
     try {
-      final videosUrl = isTvShow
-          ? '$baseUrl/tv/$id/videos?api_key=$apiKey&language=ru-RU'
-          : '$baseUrl/movie/$id/videos?api_key=$apiKey&language=ru-RU';
-      
-      final response = await http.get(Uri.parse(videosUrl));
+      Future<http.Response> fetch(String lang) {
+        final videosUrl = isTvShow
+            ? '$baseUrl/tv/$id/videos?api_key=$apiKey&language=$lang'
+            : '$baseUrl/movie/$id/videos?api_key=$apiKey&language=$lang';
+        return http.get(Uri.parse(videosUrl));
+      }
+
+      // Сначала пробуем на выбранном языке, потом fallback на en-US (часто больше результатов)
+      var response = await fetch(tmdbLang);
+      if (response.statusCode != 200 || (jsonDecode(response.body)['results'] as List).isEmpty) {
+        response = await fetch('en-US');
+      }
       
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonData = jsonDecode(response.body);
