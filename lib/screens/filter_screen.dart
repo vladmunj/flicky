@@ -270,161 +270,174 @@ class _FilterScreenState extends State<FilterScreen> {
                       ListView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
-                        itemCount: _results.length,
+                        itemCount: _results.length + ((_isLoadingResults || _hasMoreResults) ? 1 : 0),
                         itemBuilder: (context, index) {
-                          final movie = _results[index];
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(12),
-                              onTap: () => widget.onMovieTap(movie),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.grey.shade100,
-                                  borderRadius: BorderRadius.circular(12),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.05),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    // Постер
-                                    if (movie.posterUrl != null)
-                                      ClipRRect(
-                                        borderRadius: const BorderRadius.only(
-                                          topLeft: Radius.circular(12),
-                                          bottomLeft: Radius.circular(12),
-                                        ),
-                                        child: Image.network(
-                                          movie.posterUrl!,
-                                          width: 80,
-                                          height: 120,
-                                          fit: BoxFit.cover,
-                                        ),
-                                      )
-                                    else
-                                      Container(
-                                        width: 80,
-                                        height: 120,
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey.shade300,
+                          if (index < _results.length) {
+                            final movie = _results[index];
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(12),
+                                onTap: () => widget.onMovieTap(movie),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade100,
+                                    borderRadius: BorderRadius.circular(12),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.05),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      // Постер
+                                      if (movie.posterUrl != null)
+                                        ClipRRect(
                                           borderRadius: const BorderRadius.only(
                                             topLeft: Radius.circular(12),
                                             bottomLeft: Radius.circular(12),
                                           ),
+                                          child: Image.network(
+                                            movie.posterUrl!,
+                                            width: 80,
+                                            height: 120,
+                                            fit: BoxFit.cover,
+                                          ),
+                                        )
+                                      else
+                                        Container(
+                                          width: 80,
+                                          height: 120,
+                                          decoration: BoxDecoration(
+                                            color: Colors.grey.shade300,
+                                            borderRadius: const BorderRadius.only(
+                                              topLeft: Radius.circular(12),
+                                              bottomLeft: Radius.circular(12),
+                                            ),
+                                          ),
+                                          child: const Icon(Icons.movie, color: Colors.white70),
                                         ),
-                                        child: const Icon(Icons.movie, color: Colors.white70),
-                                      ),
-                                    Expanded(
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(12.0),
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
-                                              children: [
-                                                Expanded(
-                                                  child: Text(
-                                                    movie.title,
-                                                    style: const TextStyle(
-                                                      fontSize: 16,
-                                                      fontWeight: FontWeight.w600,
-                                                    ),
-                                                    maxLines: 2,
-                                                    overflow: TextOverflow.ellipsis,
-                                                  ),
-                                                ),
-                                                const SizedBox(width: 8),
-                                                Container(
-                                                  padding: const EdgeInsets.symmetric(
-                                                    horizontal: 8,
-                                                    vertical: 4,
-                                                  ),
-                                                  decoration: BoxDecoration(
-                                                    color: movie.isTvShow
-                                                        ? Colors.purple.withOpacity(0.9)
-                                                        : Colors.blue.withOpacity(0.9),
-                                                    borderRadius: BorderRadius.circular(12),
-                                                  ),
-                                                  child: Row(
-                                                    mainAxisSize: MainAxisSize.min,
-                                                    children: [
-                                                      Icon(
-                                                        movie.isTvShow ? Icons.tv : Icons.movie,
-                                                        size: 14,
-                                                        color: Colors.white,
+                                      Expanded(
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(12.0),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  Expanded(
+                                                    child: Text(
+                                                      movie.title,
+                                                      style: const TextStyle(
+                                                        fontSize: 16,
+                                                        fontWeight: FontWeight.w600,
                                                       ),
-                                                      const SizedBox(width: 4),
-                                                      Text(
-                                                        movie.isTvShow
-                                                            ? l10n.badgeTv
-                                                            : l10n.badgeMovie,
-                                                        style: const TextStyle(
-                                                          fontSize: 10,
-                                                          fontWeight: FontWeight.w600,
+                                                      maxLines: 2,
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  Container(
+                                                    padding: const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 4,
+                                                    ),
+                                                    decoration: BoxDecoration(
+                                                      color: movie.isTvShow
+                                                          ? Colors.purple.withOpacity(0.9)
+                                                          : Colors.blue.withOpacity(0.9),
+                                                      borderRadius: BorderRadius.circular(12),
+                                                    ),
+                                                    child: Row(
+                                                      mainAxisSize: MainAxisSize.min,
+                                                      children: [
+                                                        Icon(
+                                                          movie.isTvShow ? Icons.tv : Icons.movie,
+                                                          size: 14,
                                                           color: Colors.white,
                                                         ),
+                                                        const SizedBox(width: 4),
+                                                        Text(
+                                                          movie.isTvShow
+                                                              ? l10n.badgeTv
+                                                              : l10n.badgeMovie,
+                                                          style: const TextStyle(
+                                                            fontSize: 10,
+                                                            fontWeight: FontWeight.w600,
+                                                            color: Colors.white,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 6),
+                                              Row(
+                                                children: [
+                                                  if (movie.voteAverage != null) ...[
+                                                    const Icon(Icons.star,
+                                                        size: 16, color: Colors.amber),
+                                                    const SizedBox(width: 4),
+                                                    Text(
+                                                      movie.voteAverage!.toStringAsFixed(1),
+                                                      style: const TextStyle(
+                                                        fontSize: 13,
+                                                        fontWeight: FontWeight.w600,
                                                       ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            const SizedBox(height: 6),
-                                            Row(
-                                              children: [
-                                                if (movie.voteAverage != null) ...[
-                                                  const Icon(Icons.star,
-                                                      size: 16, color: Colors.amber),
-                                                  const SizedBox(width: 4),
-                                                  Text(
-                                                    movie.voteAverage!.toStringAsFixed(1),
-                                                    style: const TextStyle(
-                                                      fontSize: 13,
-                                                      fontWeight: FontWeight.w600,
                                                     ),
-                                                  ),
-                                                ],
-                                                if (movie.releaseYear != null) ...[
-                                                  if (movie.voteAverage != null)
-                                                    const SizedBox(width: 12),
-                                                  Text(
-                                                    movie.releaseYear!,
-                                                    style: TextStyle(
-                                                      fontSize: 12,
-                                                      color: Colors.grey.shade700,
+                                                  ],
+                                                  if (movie.releaseYear != null) ...[
+                                                    if (movie.voteAverage != null)
+                                                      const SizedBox(width: 12),
+                                                    Text(
+                                                      movie.releaseYear!,
+                                                      style: TextStyle(
+                                                        fontSize: 12,
+                                                        color: Colors.grey.shade700,
+                                                      ),
                                                     ),
-                                                  ),
+                                                  ],
                                                 ],
-                                              ],
-                                            ),
-                                          ],
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
-                          );
+                            );
+                          }
+
+                          // Последний элемент: либо индикатор, либо кнопка "Загрузить ещё"
+                          if (_isLoadingResults) {
+                            return const Padding(
+                              padding: EdgeInsets.all(8.0),
+                              child: Center(child: CircularProgressIndicator()),
+                            );
+                          }
+                          if (_hasMoreResults) {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8.0),
+                              child: Center(
+                                child: TextButton.icon(
+                                  onPressed: () => _loadResults(),
+                                  icon: const Icon(Icons.expand_more),
+                                  label: Text(l10n.filterLoadMore),
+                                ),
+                              ),
+                            );
+                          }
+
+                          return const SizedBox.shrink();
                         },
                       ),
-                      const SizedBox(height: 12),
-                      if (_isLoadingResults)
-                        const Center(child: CircularProgressIndicator())
-                      else if (_hasMoreResults)
-                        Center(
-                          child: TextButton.icon(
-                            onPressed: () => _loadResults(),
-                            icon: const Icon(Icons.expand_more),
-                            label: Text(l10n.filterLoadMore),
-                          ),
-                        ),
                     ],
                   ],
                 ],

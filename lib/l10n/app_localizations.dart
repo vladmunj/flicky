@@ -51,6 +51,11 @@ class AppLocalizations {
       : 'Could not open search. Please check your internet connection.';
   String get searchOpenErrorRetry =>
       isRu ? 'Не удалось открыть поиск. Попробуйте позже.' : 'Could not open search. Please try again later.';
+  String get searchHint =>
+      isRu ? 'Введите название фильма или сериала' : 'Type movie or TV show title';
+  String get searchButton => isRu ? 'Найти' : 'Search';
+  String get searchNoResults =>
+      isRu ? 'По вашему запросу ничего не найдено.' : 'No results for your query.';
 
   // Watch platforms
   String get watchOnTitle => isRu ? 'Смотреть на:' : 'Watch on:';

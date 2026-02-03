@@ -5,6 +5,7 @@ import '../models/movie.dart';
 import '../services/tmdb_service.dart';
 import '../l10n/app_localizations.dart';
 import 'filter_screen.dart';
+import 'search_screen.dart';
 
 class MovieScreen extends StatefulWidget {
   const MovieScreen({super.key});
@@ -307,6 +308,24 @@ class _MovieScreenState extends State<MovieScreen> with SingleTickerProviderStat
       });
       await _loadRandomMovie();
     }
+  }
+
+  void _openSearch() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SearchScreen(
+          onMovieTap: (movie) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => MovieDetailsScreen(movie: movie),
+              ),
+            );
+          },
+        ),
+      ),
+    );
   }
 
   void _showMovieDetails() {
@@ -630,10 +649,20 @@ class _MovieScreenState extends State<MovieScreen> with SingleTickerProviderStat
                       )
                     else
                       const SizedBox.shrink(),
-                    IconButton(
-                      icon: const Icon(Icons.tune, color: Colors.white),
-                      tooltip: context.l10n.filtersTitle,
-                      onPressed: _openFilters,
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.search, color: Colors.white),
+                          tooltip: context.l10n.searchTitle,
+                          onPressed: _openSearch,
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.tune, color: Colors.white),
+                          tooltip: context.l10n.filtersTitle,
+                          onPressed: _openFilters,
+                        ),
+                      ],
                     ),
                   ],
                 ),
