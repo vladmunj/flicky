@@ -6,6 +6,7 @@ class Movie {
   final double? voteAverage;
   final String? releaseDate;
   final List<Genre> genres;
+  final bool isTvShow; // Флаг для сериалов
 
   Movie({
     required this.id,
@@ -15,19 +16,25 @@ class Movie {
     this.voteAverage,
     this.releaseDate,
     this.genres = const [],
+    this.isTvShow = false,
   });
 
-  factory Movie.fromJson(Map<String, dynamic> json) {
+  factory Movie.fromJson(Map<String, dynamic> json, {bool isTvShow = false}) {
     return Movie(
       id: json['id'] as int,
-      title: json['title'] as String? ?? json['original_title'] as String? ?? 'Без названия',
+      title: isTvShow 
+          ? (json['name'] as String? ?? json['original_name'] as String? ?? 'Без названия')
+          : (json['title'] as String? ?? json['original_title'] as String? ?? 'Без названия'),
       overview: json['overview'] as String?,
       posterPath: json['poster_path'] as String?,
       voteAverage: (json['vote_average'] as num?)?.toDouble(),
-      releaseDate: json['release_date'] as String?,
+      releaseDate: isTvShow 
+          ? (json['first_air_date'] as String?)
+          : (json['release_date'] as String?),
       genres: (json['genres'] as List<dynamic>?)
           ?.map((g) => Genre.fromJson(g as Map<String, dynamic>))
           .toList() ?? [],
+      isTvShow: isTvShow,
     );
   }
 

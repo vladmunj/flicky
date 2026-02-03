@@ -17,37 +17,58 @@ class TMDbService {
     try {
       final random = Random();
       
+      // Случайно выбираем между фильмами и сериалами
+      final isTvShow = random.nextBool();
+      
       // Пробуем несколько подходов для большей случайности
-      // 1. Популярные фильмы со случайной страницы
-      // 2. Топ рейтинговые фильмы
-      // 3. Новые фильмы
+      // Для фильмов: популярные, топ рейтинговые, новые
+      // Для сериалов: популярные, топ рейтинговые, новые
       
       int attempt = 0;
-      const maxAttempts = 3;
+      const maxAttempts = 6; // Увеличиваем количество попыток
       
       while (attempt < maxAttempts) {
         try {
           String url;
+          bool currentIsTvShow = isTvShow;
           
-          switch (attempt) {
+          // Чередуем между фильмами и сериалами
+          if (attempt >= 3) {
+            currentIsTvShow = !isTvShow;
+          }
+          
+          switch (attempt % 3) {
             case 0:
-              // Популярные фильмы со случайной страницы (1-100)
+              // Популярные
               final randomPage = random.nextInt(100) + 1;
-              url = '$baseUrl/movie/popular?api_key=$apiKey&language=ru-RU&page=$randomPage';
+              if (currentIsTvShow) {
+                url = '$baseUrl/tv/popular?api_key=$apiKey&language=ru-RU&page=$randomPage';
+              } else {
+                url = '$baseUrl/movie/popular?api_key=$apiKey&language=ru-RU&page=$randomPage';
+              }
               break;
             case 1:
-              // Топ рейтинговые фильмы со случайной страницы
+              // Топ рейтинговые
               final randomPage = random.nextInt(50) + 1;
-              url = '$baseUrl/movie/top_rated?api_key=$apiKey&language=ru-RU&page=$randomPage';
+              if (currentIsTvShow) {
+                url = '$baseUrl/tv/top_rated?api_key=$apiKey&language=ru-RU&page=$randomPage';
+              } else {
+                url = '$baseUrl/movie/top_rated?api_key=$apiKey&language=ru-RU&page=$randomPage';
+              }
               break;
             case 2:
-              // Новые фильмы (discover с разными параметрами)
+              // Новые (discover)
               final randomPage = random.nextInt(50) + 1;
-              final year = DateTime.now().year - random.nextInt(5); // Последние 5 лет
-              url = '$baseUrl/discover/movie?api_key=$apiKey&language=ru-RU&page=$randomPage&sort_by=popularity.desc&year=$year';
+              final year = DateTime.now().year - random.nextInt(5);
+              if (currentIsTvShow) {
+                url = '$baseUrl/discover/tv?api_key=$apiKey&language=ru-RU&page=$randomPage&sort_by=popularity.desc&first_air_date_year=$year';
+              } else {
+                url = '$baseUrl/discover/movie?api_key=$apiKey&language=ru-RU&page=$randomPage&sort_by=popularity.desc&year=$year';
+              }
               break;
             default:
               url = '$baseUrl/movie/popular?api_key=$apiKey&language=ru-RU&page=1';
+              currentIsTvShow = false;
           }
           
           final response = await http.get(Uri.parse(url));
@@ -65,47 +86,49 @@ class TMDbService {
             continue;
           }
 
-          // Фильтруем исключенные фильмы
-          List<dynamic> availableMovies = results;
+          // Фильтруем исключенные фильмы/сериалы
+          List<dynamic> availableItems = results;
           if (excludeIds != null && excludeIds.isNotEmpty) {
-            availableMovies = results.where((movie) {
-              final id = (movie as Map<String, dynamic>)['id'] as int;
+            availableItems = results.where((item) {
+              final id = (item as Map<String, dynamic>)['id'] as int;
               return !excludeIds.contains(id);
             }).toList();
           }
 
-          // Если после фильтрации не осталось фильмов, используем все
-          if (availableMovies.isEmpty) {
-            availableMovies = results;
+          // Если после фильтрации не осталось, используем все
+          if (availableItems.isEmpty) {
+            availableItems = results;
           }
 
-          // Выбираем случайный фильм
-          final randomMovie = availableMovies[random.nextInt(availableMovies.length)] as Map<String, dynamic>;
-          final movieId = randomMovie['id'] as int;
+          // Выбираем случайный элемент
+          final randomItem = availableItems[random.nextInt(availableItems.length)] as Map<String, dynamic>;
+          final itemId = randomItem['id'] as int;
 
-          // Получаем детальную информацию о фильме
-          final detailsResponse = await http.get(
-            Uri.parse('$baseUrl/movie/$movieId?api_key=$apiKey&language=ru-RU'),
-          );
+          // Получаем детальную информацию
+          final detailsUrl = currentIsTvShow
+              ? '$baseUrl/tv/$itemId?api_key=$apiKey&language=ru-RU'
+              : '$baseUrl/movie/$itemId?api_key=$apiKey&language=ru-RU';
+          
+          final detailsResponse = await http.get(Uri.parse(detailsUrl));
 
           if (detailsResponse.statusCode == 200) {
-            final Map<String, dynamic> movieJson = jsonDecode(detailsResponse.body);
-            return Movie.fromJson(movieJson);
+            final Map<String, dynamic> itemJson = jsonDecode(detailsResponse.body);
+            return Movie.fromJson(itemJson, isTvShow: currentIsTvShow);
           }
 
           // Если детали не получены, возвращаем базовую информацию
-          return Movie.fromJson(randomMovie);
+          return Movie.fromJson(randomItem, isTvShow: currentIsTvShow);
         } catch (e) {
           attempt++;
           if (attempt >= maxAttempts) {
-            throw Exception('Ошибка при получении фильма: $e');
+            throw Exception('Ошибка при получении контента: $e');
           }
         }
       }
       
       return null;
     } catch (e) {
-      throw Exception('Ошибка при получении фильма: $e');
+      throw Exception('Ошибка при получении контента: $e');
     }
   }
 }
