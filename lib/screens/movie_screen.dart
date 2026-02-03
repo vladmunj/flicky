@@ -101,6 +101,14 @@ class _MovieScreenState extends State<MovieScreen> with SingleTickerProviderStat
         url = 'https://www.disneyplus.com/search/${Uri.encodeComponent(movieTitle)}';
         serviceName = 'Disney+';
         break;
+      case 'hbomax':
+        url = 'https://play.max.com/search?q=${Uri.encodeComponent(movieTitle)}';
+        serviceName = 'HBO Max';
+        break;
+      case 'amediateka':
+        url = 'https://www.amediateka.ru/search?query=${Uri.encodeComponent(movieTitle)}';
+        serviceName = 'Amediateka';
+        break;
       case 'ivi':
         url = 'https://www.ivi.ru/search?ivi_search=${Uri.encodeComponent(movieTitle)}';
         serviceName = context.l10n.iviLabel;
@@ -873,7 +881,6 @@ class _StreamingPlatformsSheet extends StatelessWidget {
                   },
                 ),
                 const SizedBox(height: 12),
-                // Убрали Google Play Movies, вместо него — Disney+
                 _StreamingButton(
                   icon: Icons.play_circle_outline,
                   label: 'Disney+',
@@ -881,6 +888,26 @@ class _StreamingPlatformsSheet extends StatelessWidget {
                   onTap: () {
                     Navigator.pop(context);
                     onPlatformTap('disney', movieTitle);
+                  },
+                ),
+                const SizedBox(height: 12),
+                _StreamingButton(
+                  icon: Icons.play_circle_outline,
+                  label: 'HBO Max',
+                  color: Colors.deepPurple.shade300,
+                  onTap: () {
+                    Navigator.pop(context);
+                    onPlatformTap('hbomax', movieTitle);
+                  },
+                ),
+                const SizedBox(height: 12),
+                _StreamingButton(
+                  icon: Icons.play_circle_outline,
+                  label: 'Amediateka',
+                  color: Colors.redAccent,
+                  onTap: () {
+                    Navigator.pop(context);
+                    onPlatformTap('amediateka', movieTitle);
                   },
                 ),
                 const SizedBox(height: 12),
@@ -1430,6 +1457,24 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
                     label: 'Apple TV',
                     color: Colors.black,
                     onTap: () => _openStreamingService('apple', widget.movie.title),
+                  ),
+                  const SizedBox(height: 12),
+                  
+                  // HBO Max
+                  _StreamingButton(
+                    icon: Icons.play_circle_outline,
+                    label: 'HBO Max',
+                    color: Colors.deepPurple.shade300,
+                    onTap: () => _openStreamingService('hbomax', widget.movie.title),
+                  ),
+                  const SizedBox(height: 12),
+                  
+                  // Amediateka
+                  _StreamingButton(
+                    icon: Icons.play_circle_outline,
+                    label: 'Amediateka',
+                    color: Colors.redAccent,
+                    onTap: () => _openStreamingService('amediateka', widget.movie.title),
                   ),
                   const SizedBox(height: 12),
                   
