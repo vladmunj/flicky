@@ -55,7 +55,8 @@ class AppLocalizations {
   // Watch platforms
   String get watchOnTitle => isRu ? 'Смотреть на:' : 'Watch on:';
   String get whereToWatchTitle => isRu ? 'Где смотреть' : 'Where to watch';
-   String get kinopoiskLabel => isRu ? 'Кинопоиск' : 'Kinopoisk';
+  String get kinopoiskLabel => isRu ? 'Кинопоиск' : 'Kinopoisk';
+  String get iviLabel => isRu ? 'Иви' : 'ivi';
   String openServiceInternetError(String serviceName) => isRu
       ? 'Не удалось открыть $serviceName. Проверьте подключение к интернету.'
       : 'Could not open $serviceName. Please check your internet connection.';

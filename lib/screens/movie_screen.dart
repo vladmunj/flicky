@@ -97,9 +97,13 @@ class _MovieScreenState extends State<MovieScreen> with SingleTickerProviderStat
         url = 'https://tv.apple.com/search?term=${Uri.encodeComponent(movieTitle)}';
         serviceName = 'Apple TV';
         break;
-      case 'google':
-        url = 'https://play.google.com/store/search?q=${Uri.encodeComponent(movieTitle)}&c=movies';
-        serviceName = 'Google Play Movies';
+      case 'disney':
+        url = 'https://www.disneyplus.com/search/${Uri.encodeComponent(movieTitle)}';
+        serviceName = 'Disney+';
+        break;
+      case 'ivi':
+        url = 'https://www.ivi.ru/search?ivi_search=${Uri.encodeComponent(movieTitle)}';
+        serviceName = context.l10n.iviLabel;
         break;
       case 'kinopoisk':
         url = 'https://www.kinopoisk.ru/index.php?kp_query=${Uri.encodeComponent(movieTitle)}';
@@ -112,6 +116,7 @@ class _MovieScreenState extends State<MovieScreen> with SingleTickerProviderStat
     debugPrint('🔗 [Flicky] Попытка открыть $serviceName');
     debugPrint('🔗 [Flicky] URL: $url');
     debugPrint('🔗 [Flicky] Фильм: $movieTitle');
+
 
     final uri = Uri.parse(url);
     
@@ -789,13 +794,24 @@ class _StreamingPlatformsSheet extends StatelessWidget {
                   },
                 ),
                 const SizedBox(height: 12),
+                // Убрали Google Play Movies, вместо него — Disney+
                 _StreamingButton(
                   icon: Icons.play_circle_outline,
-                  label: 'Google Play Movies',
-                  color: Colors.green,
+                  label: 'Disney+',
+                  color: Colors.indigo,
                   onTap: () {
                     Navigator.pop(context);
-                    onPlatformTap('google', movieTitle);
+                    onPlatformTap('disney', movieTitle);
+                  },
+                ),
+                const SizedBox(height: 12),
+                _StreamingButton(
+                  icon: Icons.play_circle_outline,
+                  label: context.l10n.iviLabel,
+                  color: Colors.deepPurple,
+                  onTap: () {
+                    Navigator.pop(context);
+                    onPlatformTap('ivi', movieTitle);
                   },
                 ),
                 const SizedBox(height: 12),
@@ -928,9 +944,9 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
         url = 'https://tv.apple.com/search?term=${Uri.encodeComponent(movieTitle)}';
         serviceName = 'Apple TV';
         break;
-      case 'google':
-        url = 'https://play.google.com/store/search?q=${Uri.encodeComponent(movieTitle)}&c=movies';
-        serviceName = 'Google Play Movies';
+      case 'disney':
+        url = 'https://www.disneyplus.com/search/${Uri.encodeComponent(movieTitle)}';
+        serviceName = 'Disney+';
         break;
       case 'kinopoisk':
         url = 'https://www.kinopoisk.ru/index.php?kp_query=${Uri.encodeComponent(movieTitle)}';
@@ -1305,12 +1321,12 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
                   ),
                   const SizedBox(height: 12),
                   
-                  // Google Play Movies
+                  // IVI
                   _StreamingButton(
                     icon: Icons.play_circle_outline,
-                    label: 'Google Play Movies',
-                    color: Colors.green,
-                    onTap: () => _openStreamingService('google', widget.movie.title),
+                    label: context.l10n.iviLabel,
+                    color: Colors.deepPurple,
+                    onTap: () => _openStreamingService('ivi', widget.movie.title),
                   ),
                   const SizedBox(height: 12),
                   
