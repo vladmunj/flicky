@@ -103,7 +103,7 @@ class _MovieScreenState extends State<MovieScreen> with SingleTickerProviderStat
         break;
       case 'kinopoisk':
         url = 'https://www.kinopoisk.ru/index.php?kp_query=${Uri.encodeComponent(movieTitle)}';
-        serviceName = 'Кинопоиск';
+        serviceName = context.l10n.kinopoiskLabel;
         break;
       default:
         return;
@@ -801,7 +801,7 @@ class _StreamingPlatformsSheet extends StatelessWidget {
                 const SizedBox(height: 12),
                 _StreamingButton(
                   icon: Icons.play_circle_outline,
-                  label: 'Кинопоиск',
+                  label: context.l10n.kinopoiskLabel,
                   color: Colors.orange,
                   onTap: () {
                     Navigator.pop(context);
@@ -934,7 +934,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
         break;
       case 'kinopoisk':
         url = 'https://www.kinopoisk.ru/index.php?kp_query=${Uri.encodeComponent(movieTitle)}';
-        serviceName = 'Кинопоиск';
+        serviceName = context.l10n.kinopoiskLabel;
         break;
       default:
         return;
@@ -1317,7 +1317,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
                   // Кинопоиск
                   _StreamingButton(
                     icon: Icons.play_circle_outline,
-                    label: 'Кинопоиск',
+                    label: context.l10n.kinopoiskLabel,
                     color: Colors.orange,
                     onTap: () => _openStreamingService('kinopoisk', widget.movie.title),
                   ),
