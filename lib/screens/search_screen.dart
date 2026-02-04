@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../models/movie.dart';
 import '../services/tmdb_service.dart';
+import 'actor_filmography_screen.dart';
 
 class SearchScreen extends StatefulWidget {
   final void Function(Movie) onMovieTap;
@@ -18,6 +19,7 @@ class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _controller = TextEditingController();
 
   final List<Movie> _results = [];
+  final List<CastMember> _people = [];
   bool _isLoading = false;
   bool _hasMore = false;
   int _currentPage = 1;
@@ -50,6 +52,7 @@ class _SearchScreenState extends State<SearchScreen> {
       setState(() {
         _hasSearched = false;
         _results.clear();
+        _people.clear();
       });
       return;
     }
@@ -62,19 +65,36 @@ class _SearchScreenState extends State<SearchScreen> {
       if (reset) {
         _results.clear();
         _currentPage = 1;
+        _people.clear();
       }
     });
 
     try {
       final lang = Localizations.localeOf(context).languageCode;
       final page = reset ? 1 : _currentPage;
-      final result = await _service.searchMoviesAndTv(
+      final moviesFuture = _service.searchMoviesAndTv(
         languageCode: lang,
         query: query,
         page: page,
       );
+      // Актёров ищем только по первой странице (лучшие совпадения)
+      final peopleFuture = reset
+          ? _service.searchPersons(
+              languageCode: lang,
+              query: query,
+              limit: 10,
+            )
+          : Future.value(<CastMember>[]);
+
+      final result = await moviesFuture;
+      final people = await peopleFuture;
 
       setState(() {
+        if (reset) {
+          _people
+            ..clear()
+            ..addAll(people);
+        }
         _results.addAll(result.items);
         // Глобальная сортировка по рейтингу (по убыванию),
         // чтобы при догрузке страниц порядок сохранялся.
@@ -201,7 +221,7 @@ class _SearchScreenState extends State<SearchScreen> {
       );
     }
 
-    if (_results.isEmpty && !_isLoading) {
+    if (_results.isEmpty && _people.isEmpty && !_isLoading) {
       return Center(
         child: Text(
           l10n.searchNoResults,
@@ -210,9 +230,49 @@ class _SearchScreenState extends State<SearchScreen> {
       );
     }
 
+    return ListView(
+      children: [
+        if (_people.isNotEmpty) ...[
+          Text(
+            l10n.searchActorsTitle,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+          const SizedBox(height: 8),
+          ..._people.map((person) {
+            return ListTile(
+              leading: person.profileUrl != null
+                  ? CircleAvatar(
+                      backgroundImage: NetworkImage(person.profileUrl!),
+                    )
+                  : const CircleAvatar(
+                      child: Icon(Icons.person),
+                    ),
+              title: Text(person.name),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ActorFilmographyScreen(castMember: person),
+                  ),
+                );
+              },
+            );
+          }).toList(),
+          const SizedBox(height: 16),
+        ],
+        _buildMoviesList(context, l10n),
+      ],
+    );
+  }
+
+  Widget _buildMoviesList(BuildContext context, AppLocalizations l10n) {
     final extraItem = (_isLoading || _hasMore) ? 1 : 0;
 
     return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
       itemCount: _results.length + extraItem,
       itemBuilder: (context, index) {
         if (index < _results.length) {

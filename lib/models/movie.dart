@@ -101,6 +101,8 @@ class CastMember {
   final String? character;
   final String? profilePath;
   final int? order;
+  final double? popularity;
+  final String? knownForDepartment;
 
   const CastMember({
     required this.id,
@@ -108,6 +110,8 @@ class CastMember {
     this.character,
     this.profilePath,
     this.order,
+    this.popularity,
+    this.knownForDepartment,
   });
 
   factory CastMember.fromJson(Map<String, dynamic> json) {
@@ -117,6 +121,8 @@ class CastMember {
       character: json['character'] as String?,
       profilePath: json['profile_path'] as String?,
       order: json['order'] as int?,
+      popularity: (json['popularity'] as num?)?.toDouble(),
+      knownForDepartment: json['known_for_department'] as String?,
     );
   }
 

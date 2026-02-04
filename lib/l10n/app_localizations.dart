@@ -46,6 +46,7 @@ class AppLocalizations {
 
   // Google search
   String get searchTitle => isRu ? 'Поиск' : 'Search';
+  String get searchActorsTitle => isRu ? 'Актёры' : 'Actors';
   String get findInGoogle => isRu ? 'Найти в Google' : 'Find on Google';
   String get searchOpenError => isRu
       ? 'Не удалось открыть поиск. Проверьте подключение к интернету.'

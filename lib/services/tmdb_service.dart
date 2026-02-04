@@ -195,6 +195,48 @@ class TMDbService {
     );
   }
 
+  Future<List<CastMember>> searchPersons({
+    required String languageCode,
+    required String query,
+    int limit = 10,
+  }) async {
+    if (apiKey == null || apiKey!.isEmpty || apiKey == 'your_api_key_here') {
+      throw Exception('TMDB_API_KEY не установлен в .env файле');
+    }
+
+    final tmdbLang = languageCode.toLowerCase() == 'ru' ? 'ru-RU' : 'en-US';
+    final encodedQuery = Uri.encodeQueryComponent(query);
+
+    final url =
+        '$baseUrl/search/person?api_key=$apiKey&language=$tmdbLang&page=1&include_adult=false&query=$encodedQuery';
+
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode != 200) {
+      return [];
+    }
+
+    final Map<String, dynamic> jsonData = jsonDecode(response.body) as Map<String, dynamic>;
+    final List<dynamic> results = jsonData['results'] as List<dynamic>? ?? [];
+
+    final people = results
+        .map((e) => CastMember.fromJson(e as Map<String, dynamic>))
+        .toList();
+
+    // Сначала актёры (known_for_department == Acting), внутри — по популярности
+    people.sort((a, b) {
+      final aIsActor = (a.knownForDepartment ?? '').toLowerCase() == 'acting';
+      final bIsActor = (b.knownForDepartment ?? '').toLowerCase() == 'acting';
+      if (aIsActor != bIsActor) {
+        return aIsActor ? -1 : 1;
+      }
+      final ap = a.popularity ?? 0;
+      final bp = b.popularity ?? 0;
+      return bp.compareTo(ap);
+    });
+
+    return people.take(limit).toList();
+  }
+
   Future<Movie?> getRandomMovie({
     Set<int>? excludeIds,
     String languageCode = 'en',
