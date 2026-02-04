@@ -576,14 +576,24 @@ class TMDbService {
         })
         .toList();
 
+    // Удаляем дубли (один и тот же тайтл может встречаться несколько раз
+    // из-за разных эпизодов/сезонов). Ключ: (id, isTvShow).
+    final Map<String, Movie> uniqueById = {};
+    for (final movie in movies) {
+      final key = '${movie.id}_${movie.isTvShow ? 'tv' : 'movie'}';
+      // Если дубль, оставляем первый (обычно он с более корректными полями).
+      uniqueById.putIfAbsent(key, () => movie);
+    }
+    final uniqueMovies = uniqueById.values.toList();
+
     // Сортировка по рейтингу (по убыванию)
-    movies.sort((a, b) {
+    uniqueMovies.sort((a, b) {
       final ar = a.voteAverage ?? 0;
       final br = b.voteAverage ?? 0;
       return br.compareTo(ar);
     });
 
-    return movies;
+    return uniqueMovies;
   }
 
   // Curated lists
