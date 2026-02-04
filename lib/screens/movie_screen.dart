@@ -51,12 +51,15 @@ class _MovieScreenState extends State<MovieScreen> with SingleTickerProviderStat
       }
 
       final lang = Localizations.localeOf(context).languageCode;
+      // Минимальный рейтинг для случайного фильма: не ниже 5.0
+      final double? effectiveMinRating =
+          _filterMinRating != null && _filterMinRating! > 5.0 ? _filterMinRating : 5.0;
       final movie = await _tmdbService.getRandomMovie(
         excludeIds: _shownMovieIds,
         languageCode: lang,
         year: _filterYear,
         genreIds: _filterGenreIds.isEmpty ? null : _filterGenreIds,
-        minRating: _filterMinRating,
+        minRating: effectiveMinRating,
         countryCode: _filterCountryCode,
       );
       if (movie != null) {
@@ -524,12 +527,15 @@ class _MovieScreenState extends State<MovieScreen> with SingleTickerProviderStat
       }
       
       final lang = Localizations.localeOf(context).languageCode;
+      // Минимальный рейтинг для случайного фильма при свайпе: не ниже 5.0
+      final double? effectiveMinRating =
+          _filterMinRating != null && _filterMinRating! > 5.0 ? _filterMinRating : 5.0;
       final movie = await _tmdbService.getRandomMovie(
         excludeIds: _shownMovieIds,
         languageCode: lang,
         year: _filterYear,
         genreIds: _filterGenreIds.isEmpty ? null : _filterGenreIds,
-        minRating: _filterMinRating,
+        minRating: effectiveMinRating,
         countryCode: _filterCountryCode,
       );
       if (movie != null) {

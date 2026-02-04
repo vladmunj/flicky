@@ -431,8 +431,8 @@ class TMDbService {
                 }
               }
               if (minRating != null) {
-                final rating = movie.voteAverage;
-                if (rating != null && rating < minRating) {
+                final rating = movie.voteAverage ?? 0;
+                if (rating < minRating) {
                   attempt++;
                   continue;
                 }
@@ -459,25 +459,25 @@ class TMDbService {
           }
 
           // Если детали не получены, возвращаем базовую информацию
-          final movie = Movie.fromJson(randomItem, isTvShow: currentIsTvShow);
-          if (hasFilters) {
-            if (year != null) {
-              final yearStr = movie.releaseYear;
-              final parsedYear = yearStr != null ? int.tryParse(yearStr) : null;
-              if (parsedYear != null && parsedYear != year) {
-                attempt++;
-                continue;
-              }
-            }
-            if (minRating != null) {
-              final rating = movie.voteAverage;
-              if (rating != null && rating < minRating) {
-                attempt++;
-                continue;
-              }
+        final movie = Movie.fromJson(randomItem, isTvShow: currentIsTvShow);
+        if (hasFilters) {
+          if (year != null) {
+            final yearStr = movie.releaseYear;
+            final parsedYear = yearStr != null ? int.tryParse(yearStr) : null;
+            if (parsedYear != null && parsedYear != year) {
+              attempt++;
+              continue;
             }
           }
-          return movie;
+          if (minRating != null) {
+            final rating = movie.voteAverage ?? 0;
+            if (rating < minRating) {
+              attempt++;
+              continue;
+            }
+          }
+        }
+        return movie;
         } catch (e) {
           attempt++;
           if (attempt >= maxAttempts) {
