@@ -92,9 +92,9 @@ class TMDbService {
     }
 
     final movieUrl =
-        '$baseUrl/discover/movie?api_key=$apiKey&language=$tmdbLang&page=$page&sort_by=popularity.desc${buildCommonParams(isTv: false)}';
+        '$baseUrl/discover/movie?api_key=$apiKey&language=$tmdbLang&page=$page&include_adult=false&sort_by=popularity.desc${buildCommonParams(isTv: false)}';
     final tvUrl =
-        '$baseUrl/discover/tv?api_key=$apiKey&language=$tmdbLang&page=$page&sort_by=popularity.desc${buildCommonParams(isTv: true)}';
+        '$baseUrl/discover/tv?api_key=$apiKey&language=$tmdbLang&page=$page&include_adult=false&sort_by=popularity.desc${buildCommonParams(isTv: true)}';
 
     final responses = await Future.wait([
       http.get(Uri.parse(movieUrl)),
@@ -116,7 +116,10 @@ class TMDbService {
 
       for (final item in results) {
         final map = item as Map<String, dynamic>;
-        items.add(Movie.fromJson(map, isTvShow: isTvShow));
+        final movie = Movie.fromJson(map, isTvShow: isTvShow);
+        if (!movie.isAdult) {
+          items.add(movie);
+        }
       }
     }
 
@@ -174,7 +177,10 @@ class TMDbService {
 
       for (final item in results) {
         final map = item as Map<String, dynamic>;
-        items.add(Movie.fromJson(map, isTvShow: isTvShow));
+        final movie = Movie.fromJson(map, isTvShow: isTvShow);
+        if (!movie.isAdult) {
+          items.add(movie);
+        }
       }
     }
 
@@ -340,7 +346,7 @@ class TMDbService {
                 if (currentIsTvShow) {
                   url = '$baseUrl/tv/popular?api_key=$apiKey&language=$tmdbLang&page=$randomPage';
                 } else {
-                  url = '$baseUrl/movie/popular?api_key=$apiKey&language=$tmdbLang&page=$randomPage';
+                  url = '$baseUrl/movie/popular?api_key=$apiKey&language=$tmdbLang&page=$randomPage&include_adult=false';
                 }
                 break;
               case 1:
@@ -349,7 +355,7 @@ class TMDbService {
                 if (currentIsTvShow) {
                   url = '$baseUrl/tv/top_rated?api_key=$apiKey&language=$tmdbLang&page=$randomPage';
                 } else {
-                  url = '$baseUrl/movie/top_rated?api_key=$apiKey&language=$tmdbLang&page=$randomPage';
+                  url = '$baseUrl/movie/top_rated?api_key=$apiKey&language=$tmdbLang&page=$randomPage&include_adult=false';
                 }
                 break;
               case 2:
@@ -358,10 +364,10 @@ class TMDbService {
                 final randomYear = DateTime.now().year - random.nextInt(5);
                 if (currentIsTvShow) {
                   url =
-                      '$baseUrl/discover/tv?api_key=$apiKey&language=$tmdbLang&page=$randomPage&sort_by=popularity.desc&first_air_date_year=$randomYear';
+                      '$baseUrl/discover/tv?api_key=$apiKey&language=$tmdbLang&page=$randomPage&include_adult=false&sort_by=popularity.desc&first_air_date_year=$randomYear';
                 } else {
                   url =
-                      '$baseUrl/discover/movie?api_key=$apiKey&language=$tmdbLang&page=$randomPage&sort_by=popularity.desc&year=$randomYear';
+                      '$baseUrl/discover/movie?api_key=$apiKey&language=$tmdbLang&page=$randomPage&include_adult=false&sort_by=popularity.desc&year=$randomYear';
                 }
                 break;
               default:
@@ -653,7 +659,9 @@ class TMDbService {
       // Если дубль, оставляем первый (обычно он с более корректными полями).
       uniqueById.putIfAbsent(key, () => movie);
     }
-    final uniqueMovies = uniqueById.values.toList();
+    final uniqueMovies = uniqueById.values
+        .where((m) => !m.isAdult)
+        .toList();
 
     // Сортировка по рейтингу (по убыванию)
     uniqueMovies.sort((a, b) {

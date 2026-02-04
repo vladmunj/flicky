@@ -8,6 +8,7 @@ class Movie {
   final List<Genre> genres;
   final bool isTvShow; // Флаг для сериалов
   final String? trailerKey; // Ключ трейлера на YouTube
+  final bool isAdult;
 
   Movie({
     required this.id,
@@ -19,6 +20,7 @@ class Movie {
     this.genres = const [],
     this.isTvShow = false,
     this.trailerKey,
+    this.isAdult = false,
   });
 
   factory Movie.fromJson(Map<String, dynamic> json, {bool isTvShow = false}) {
@@ -38,6 +40,7 @@ class Movie {
           .toList() ?? [],
       isTvShow: isTvShow,
       trailerKey: null, // Будет установлено отдельно
+      isAdult: (json['adult'] as bool?) ?? false,
     );
   }
 
