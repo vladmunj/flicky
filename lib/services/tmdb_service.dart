@@ -492,6 +492,47 @@ class TMDbService {
         .toList();
   }
 
+  Future<List<Movie>> fetchPersonFilmography({
+    required int personId,
+    String languageCode = 'en',
+  }) async {
+    if (apiKey == null || apiKey!.isEmpty || apiKey == 'your_api_key_here') {
+      throw Exception('TMDB_API_KEY не установлен в .env файле');
+    }
+
+    final tmdbLang = languageCode.toLowerCase() == 'ru' ? 'ru-RU' : 'en-US';
+    final url =
+        '$baseUrl/person/$personId/combined_credits?api_key=$apiKey&language=$tmdbLang';
+
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode != 200) {
+      throw Exception('Ошибка при получении фильмографии: ${response.statusCode}');
+    }
+
+    final Map<String, dynamic> data =
+        jsonDecode(response.body) as Map<String, dynamic>;
+    final List<dynamic> castJson = data['cast'] as List<dynamic>? ?? [];
+
+    final movies = castJson.map((e) {
+      final map = e as Map<String, dynamic>;
+      final mediaType = map['media_type'] as String?;
+      final isTv = mediaType == 'tv';
+      return Movie.fromJson(map, isTvShow: isTv);
+    }).toList();
+
+    // Немного упорядочим: сначала более новые, затем по рейтингу
+    movies.sort((a, b) {
+      final ay = a.releaseYear != null ? int.tryParse(a.releaseYear!) ?? 0 : 0;
+      final by = b.releaseYear != null ? int.tryParse(b.releaseYear!) ?? 0 : 0;
+      if (ay != by) return by.compareTo(ay);
+      final ar = a.voteAverage ?? 0;
+      final br = b.voteAverage ?? 0;
+      return br.compareTo(ar);
+    });
+
+    return movies;
+  }
+
   // Curated lists
   Future<List<Movie>> getCuratedNew({required String languageCode}) async {
     if (apiKey == null || apiKey!.isEmpty || apiKey == 'your_api_key_here') {
