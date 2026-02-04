@@ -466,6 +466,32 @@ class TMDbService {
     return null;
   }
 
+  Future<List<CastMember>> fetchCast({
+    required int id,
+    required bool isTvShow,
+    String languageCode = 'en',
+  }) async {
+    if (apiKey == null || apiKey!.isEmpty || apiKey == 'your_api_key_here') {
+      throw Exception('TMDB_API_KEY не установлен в .env файле');
+    }
+
+    final tmdbLang = languageCode.toLowerCase() == 'ru' ? 'ru-RU' : 'en-US';
+    final typePath = isTvShow ? 'tv' : 'movie';
+    final url = '$baseUrl/$typePath/$id/credits?api_key=$apiKey&language=$tmdbLang';
+
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode != 200) {
+      throw Exception('Ошибка при получении актёрского состава: ${response.statusCode}');
+    }
+
+    final Map<String, dynamic> data = jsonDecode(response.body) as Map<String, dynamic>;
+    final List<dynamic> castJson = data['cast'] as List<dynamic>? ?? [];
+
+    return castJson
+        .map((e) => CastMember.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
   // Curated lists
   Future<List<Movie>> getCuratedNew({required String languageCode}) async {
     if (apiKey == null || apiKey!.isEmpty || apiKey == 'your_api_key_here') {

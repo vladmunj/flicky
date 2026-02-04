@@ -33,6 +33,7 @@ class AppLocalizations {
   String get detailsMovieTitle => isRu ? 'Информация о фильме' : 'Movie details';
   String get detailsTvTitle => isRu ? 'Информация о сериале' : 'TV show details';
   String get overviewTitle => isRu ? 'Описание' : 'Overview';
+  String get castTitle => isRu ? 'Актёрский состав' : 'Cast';
 
   // Trailer
   String get trailerTitle => isRu ? 'Трейлер' : 'Trailer';

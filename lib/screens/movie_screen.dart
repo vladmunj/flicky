@@ -1131,6 +1131,43 @@ class MovieDetailsScreen extends StatefulWidget {
 }
 
 class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
+  final TMDbService _service = TMDbService();
+  List<CastMember> _cast = [];
+  bool _isLoadingCast = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadCast();
+    });
+  }
+
+  Future<void> _loadCast() async {
+    setState(() {
+      _isLoadingCast = true;
+    });
+
+    try {
+      final lang = Localizations.localeOf(context).languageCode;
+      final cast = await _service.fetchCast(
+        id: widget.movie.id,
+        isTvShow: widget.movie.isTvShow,
+        languageCode: lang,
+      );
+      if (!mounted) return;
+      setState(() {
+        _cast = cast;
+        _isLoadingCast = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingCast = false;
+      });
+    }
+  }
+
   Future<void> _openTrailer(String trailerUrl) async {
     final uri = Uri.parse(trailerUrl);
     
@@ -1429,6 +1466,83 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
                           backgroundColor: Colors.blue[50],
                         );
                       }).toList(),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // Актёрский состав
+                  if (_isLoadingCast) ...[
+                    const SizedBox(height: 8),
+                    const Center(child: CircularProgressIndicator()),
+                    const SizedBox(height: 16),
+                  ] else if (_cast.isNotEmpty) ...[
+                    Text(
+                      context.l10n.castTitle,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      height: 150,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: _cast.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 12),
+                        itemBuilder: (context, index) {
+                          final person = _cast[index];
+                          return SizedBox(
+                            width: 100,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(50),
+                                  child: person.profileUrl != null
+                                      ? CachedNetworkImage(
+                                          imageUrl: person.profileUrl!,
+                                          width: 80,
+                                          height: 80,
+                                          fit: BoxFit.cover,
+                                        )
+                                      : Container(
+                                          width: 80,
+                                          height: 80,
+                                          color: Colors.grey[300],
+                                          child: const Icon(
+                                            Icons.person,
+                                            size: 40,
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  person.name,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.center,
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                ),
+                                if (person.character != null && person.character!.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    person.character!,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    textAlign: TextAlign.center,
+                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                          color: Colors.grey[600],
+                                        ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          );
+                        },
+                      ),
                     ),
                     const SizedBox(height: 16),
                   ],
