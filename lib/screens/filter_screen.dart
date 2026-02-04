@@ -55,6 +55,13 @@ class _FilterScreenState extends State<FilterScreen> {
   List<Movie> _curatedAction = [];
   List<Movie> _curatedPopular = [];
   List<Movie> _curatedRecentTv = [];
+  bool _didAutoApply = false;
+
+  bool get _hasInitialFilters =>
+      _selectedYear != null ||
+      _selectedGenres.isNotEmpty ||
+      _selectedMinRating != null ||
+      (_selectedCountryCode != null && _selectedCountryCode!.isNotEmpty);
 
   @override
   void initState() {
@@ -66,6 +73,15 @@ class _FilterScreenState extends State<FilterScreen> {
       _selectedMinRating = initial.minRating;
       _selectedCountryCode = initial.countryCode;
     }
+
+    // Если пришли с уже заданными фильтрами (например, из жанра),
+    // автоматически загружаем результаты один раз.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_didAutoApply && _hasInitialFilters) {
+        _didAutoApply = true;
+        _apply();
+      }
+    });
   }
 
   @override

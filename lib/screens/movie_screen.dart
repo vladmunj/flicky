@@ -1461,9 +1461,32 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
                       spacing: 8,
                       runSpacing: 8,
                       children: widget.movie.genres.map((genre) {
-                        return Chip(
-                          label: Text(genre.name),
-                          backgroundColor: Colors.blue[50],
+                        return InkWell(
+                          borderRadius: BorderRadius.circular(16),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => FilterScreen(
+                                  initialConfig: FilterConfig(
+                                    genreIds: [genre.id],
+                                  ),
+                                  onMovieTap: (movie) {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => MovieDetailsScreen(movie: movie),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            );
+                          },
+                          child: Chip(
+                            label: Text(genre.name),
+                            backgroundColor: Colors.blue[50],
+                          ),
                         );
                       }).toList(),
                     ),
