@@ -1198,9 +1198,23 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
         url = 'https://tv.apple.com/search?term=${Uri.encodeComponent(movieTitle)}';
         serviceName = 'Apple TV';
         break;
+      case 'hbomax':
+        final hbomaxQuery = '$movieTitle HBO Max';
+        url = 'https://www.google.com/search?q=${Uri.encodeComponent(hbomaxQuery)}';
+        serviceName = 'HBO Max';
+        break;
       case 'disney':
         url = 'https://www.disneyplus.com/search/${Uri.encodeComponent(movieTitle)}';
         serviceName = 'Disney+';
+        break;
+      case 'amediateka':
+        final amediatekaQuery = '$movieTitle site:amediateka.ru';
+        url = 'https://www.google.com/search?q=${Uri.encodeComponent(amediatekaQuery)}';
+        serviceName = 'Amediateka';
+        break;
+      case 'ivi':
+        url = 'https://www.ivi.ru/search?ivi_search=${Uri.encodeComponent(movieTitle)}';
+        serviceName = context.l10n.iviLabel;
         break;
       case 'kinopoisk':
         url = 'https://www.kinopoisk.ru/index.php?kp_query=${Uri.encodeComponent(movieTitle)}';
