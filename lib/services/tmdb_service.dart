@@ -237,6 +237,33 @@ class TMDbService {
     return people.take(limit).toList();
   }
 
+  Future<List<String>> fetchImages({
+    required int id,
+    required bool isTvShow,
+  }) async {
+    if (apiKey == null || apiKey!.isEmpty || apiKey == 'your_api_key_here') {
+      throw Exception('TMDB_API_KEY не установлен в .env файле');
+    }
+
+    final typePath = isTvShow ? 'tv' : 'movie';
+    final url = '$baseUrl/$typePath/$id/images?api_key=$apiKey';
+
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode != 200) {
+      return [];
+    }
+
+    final Map<String, dynamic> data =
+        jsonDecode(response.body) as Map<String, dynamic>;
+    final List<dynamic> backdrops = data['backdrops'] as List<dynamic>? ?? [];
+
+    return backdrops
+        .map((e) => (e as Map<String, dynamic>)['file_path'] as String?)
+        .whereType<String>()
+        .map((path) => 'https://image.tmdb.org/t/p/w780$path')
+        .toList();
+  }
+
   Future<Movie?> getRandomMovie({
     Set<int>? excludeIds,
     String languageCode = 'en',

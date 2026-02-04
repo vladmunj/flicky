@@ -1135,12 +1135,14 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
   final TMDbService _service = TMDbService();
   List<CastMember> _cast = [];
   bool _isLoadingCast = false;
+  List<String> _images = [];
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadCast();
+      _loadImages();
     });
   }
 
@@ -1166,6 +1168,22 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
       setState(() {
         _isLoadingCast = false;
       });
+    }
+  }
+
+  Future<void> _loadImages() async {
+    try {
+      final images = await _service.fetchImages(
+        id: widget.movie.id,
+        isTvShow: widget.movie.isTvShow,
+      );
+      if (!mounted) return;
+      setState(() {
+        _images = images;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      // Игнорируем ошибки загрузки изображений
     }
   }
 
@@ -1494,6 +1512,67 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
                     const SizedBox(height: 16),
                   ],
 
+                  // Дополнительные фото (галерея)
+                  if (_images.isNotEmpty) ...[
+                    Text(
+                      context.l10n.galleryTitle,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      height: 180,
+                      child: PageView.builder(
+                        controller: PageController(viewportFraction: 0.88),
+                        itemCount: _images.length,
+                        itemBuilder: (context, index) {
+                          final url = _images[index];
+                          final isFirst = index == 0;
+                          final isLast = index == _images.length - 1;
+                          return GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ImageGalleryScreen(
+                                    images: _images,
+                                    initialIndex: index,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Padding(
+                              padding: EdgeInsets.only(
+                                left: isFirst ? 0 : 4,
+                                right: isLast ? 0 : 4,
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: CachedNetworkImage(
+                                  imageUrl: url,
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, _) => const Center(
+                                    child: SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    ),
+                                  ),
+                                  errorWidget: (context, _, __) => Container(
+                                    color: Colors.grey[300],
+                                    child: const Icon(Icons.broken_image, color: Colors.grey),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
                   // Актёрский состав
                   if (_isLoadingCast) ...[
                     const SizedBox(height: 8),
@@ -1808,6 +1887,94 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class ImageGalleryScreen extends StatefulWidget {
+  final List<String> images;
+  final int initialIndex;
+
+  const ImageGalleryScreen({
+    super.key,
+    required this.images,
+    this.initialIndex = 0,
+  });
+
+  @override
+  State<ImageGalleryScreen> createState() => _ImageGalleryScreenState();
+}
+
+class _ImageGalleryScreenState extends State<ImageGalleryScreen> {
+  late final PageController _pageController;
+  double _dragOffset = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(initialPage: widget.initialIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onVerticalDragUpdate: (details) {
+        setState(() {
+          _dragOffset += details.delta.dy;
+        });
+      },
+      onVerticalDragEnd: (details) {
+        if (_dragOffset > 80) {
+          Navigator.of(context).maybePop();
+        } else {
+          setState(() {
+            _dragOffset = 0;
+          });
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: SafeArea(
+          child: Transform.translate(
+            offset: Offset(0, _dragOffset.clamp(0, 200)),
+            child: PageView.builder(
+              controller: _pageController,
+              itemCount: widget.images.length,
+              itemBuilder: (context, index) {
+                final url = widget.images[index];
+                return Center(
+                  child: InteractiveViewer(
+                    minScale: 1,
+                    maxScale: 4,
+                    child: CachedNetworkImage(
+                      imageUrl: url,
+                      fit: BoxFit.contain,
+                        placeholder: (context, _) => const Center(
+                          child: SizedBox(
+                            width: 32,
+                            height: 32,
+                            child: CircularProgressIndicator(strokeWidth: 2.5),
+                          ),
+                        ),
+                        errorWidget: (context, _, __) => const Icon(
+                          Icons.broken_image,
+                          color: Colors.white70,
+                          size: 48,
+                        ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
         ),
       ),
     );
