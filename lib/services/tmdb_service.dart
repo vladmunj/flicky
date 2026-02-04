@@ -520,11 +520,8 @@ class TMDbService {
       return Movie.fromJson(map, isTvShow: isTv);
     }).toList();
 
-    // Немного упорядочим: сначала более новые, затем по рейтингу
+    // Сортировка по рейтингу (по убыванию)
     movies.sort((a, b) {
-      final ay = a.releaseYear != null ? int.tryParse(a.releaseYear!) ?? 0 : 0;
-      final by = b.releaseYear != null ? int.tryParse(b.releaseYear!) ?? 0 : 0;
-      if (ay != by) return by.compareTo(ay);
       final ar = a.voteAverage ?? 0;
       final br = b.voteAverage ?? 0;
       return br.compareTo(ar);

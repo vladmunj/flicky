@@ -560,6 +560,13 @@ class _FilterScreenState extends State<FilterScreen> {
         } else {
           _results.addAll(result.items);
         }
+        // Глобальная сортировка по рейтингу (по убыванию),
+        // чтобы при догрузке страниц порядок сохранялся.
+        _results.sort((a, b) {
+          final ar = a.voteAverage ?? 0;
+          final br = b.voteAverage ?? 0;
+          return br.compareTo(ar);
+        });
         _currentPage = result.nextPage;
         _hasMoreResults = result.hasMore;
         _isLoadingResults = false;

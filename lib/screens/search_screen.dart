@@ -76,6 +76,13 @@ class _SearchScreenState extends State<SearchScreen> {
 
       setState(() {
         _results.addAll(result.items);
+        // Глобальная сортировка по рейтингу (по убыванию),
+        // чтобы при догрузке страниц порядок сохранялся.
+        _results.sort((a, b) {
+          final ar = a.voteAverage ?? 0;
+          final br = b.voteAverage ?? 0;
+          return br.compareTo(ar);
+        });
         _currentPage = result.nextPage;
         _hasMore = result.hasMore;
         _isLoading = false;
