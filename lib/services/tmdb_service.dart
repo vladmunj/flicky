@@ -477,19 +477,50 @@ class TMDbService {
 
     final tmdbLang = languageCode.toLowerCase() == 'ru' ? 'ru-RU' : 'en-US';
     final typePath = isTvShow ? 'tv' : 'movie';
-    final url = '$baseUrl/$typePath/$id/credits?api_key=$apiKey&language=$tmdbLang';
 
-    final response = await http.get(Uri.parse(url));
-    if (response.statusCode != 200) {
-      throw Exception('Ошибка при получении актёрского состава: ${response.statusCode}');
+    Future<http.Response> fetch(String? lang) {
+      final langPart = lang != null ? '&language=$lang' : '';
+      final url = '$baseUrl/$typePath/$id/credits?api_key=$apiKey$langPart';
+      return http.get(Uri.parse(url));
     }
 
-    final Map<String, dynamic> data = jsonDecode(response.body) as Map<String, dynamic>;
-    final List<dynamic> castJson = data['cast'] as List<dynamic>? ?? [];
+    http.Response response = await fetch(tmdbLang);
 
-    return castJson
+    if (response.statusCode != 200) {
+      // Пробуем без языка / en-US, если локализованный запрос не удался
+      response = await fetch('en-US');
+      if (response.statusCode != 200) {
+        throw Exception('Ошибка при получении актёрского состава: ${response.statusCode}');
+      }
+    }
+
+    Map<String, dynamic> data = jsonDecode(response.body) as Map<String, dynamic>;
+    List<dynamic> castJson = data['cast'] as List<dynamic>? ?? [];
+
+    // Если по текущему языку вернулся пустой каст, пробуем ещё раз на en-US
+    if (castJson.isEmpty && tmdbLang != 'en-US') {
+      response = await fetch('en-US');
+      if (response.statusCode == 200) {
+        data = jsonDecode(response.body) as Map<String, dynamic>;
+        castJson = data['cast'] as List<dynamic>? ?? [];
+      }
+    }
+
+    final cast = castJson
         .map((e) => CastMember.fromJson(e as Map<String, dynamic>))
+        // Оставляем только основных и второстепенных ролей по полю order
+        .where((c) => c.order == null || c.order! <= 20)
         .toList();
+
+    // Сортируем по важности роли (order), затем по алфавиту имени
+    cast.sort((a, b) {
+      final ao = a.order ?? 9999;
+      final bo = b.order ?? 9999;
+      if (ao != bo) return ao.compareTo(bo);
+      return a.name.compareTo(b.name);
+    });
+
+    return cast;
   }
 
   Future<List<Movie>> fetchPersonFilmography({
@@ -513,12 +544,37 @@ class TMDbService {
         jsonDecode(response.body) as Map<String, dynamic>;
     final List<dynamic> castJson = data['cast'] as List<dynamic>? ?? [];
 
-    final movies = castJson.map((e) {
-      final map = e as Map<String, dynamic>;
-      final mediaType = map['media_type'] as String?;
-      final isTv = mediaType == 'tv';
-      return Movie.fromJson(map, isTvShow: isTv);
-    }).toList();
+    final movies = castJson
+        .where((e) {
+          final map = e as Map<String, dynamic>;
+          final order = map['order'] as int?;
+          final character = (map['character'] as String?)?.toLowerCase() ?? '';
+          final mediaType = map['media_type'] as String?;
+          final episodeCount = map['episode_count'] as int? ?? 0;
+
+          // Явные появления "Self" / "Guest" в единичных эпизодах ток-шоу
+          final isSelfLike = character.contains('self') ||
+              character.contains('himself') ||
+              character.contains('herself') ||
+              character.contains('guest');
+          final isSingleEpisodeTv = mediaType == 'tv' && episodeCount <= 1;
+
+          if (isSelfLike && isSingleEpisodeTv) {
+            // Убираем камео/гостевые появления в одном эпизоде,
+            // чтобы не засорять фильмографию ток-шоу и интервью.
+            return false;
+          }
+
+          // Оставляем только основные и второстепенные роли
+          return order == null || order <= 20;
+        })
+        .map((e) {
+          final map = e as Map<String, dynamic>;
+          final mediaType = map['media_type'] as String?;
+          final isTv = mediaType == 'tv';
+          return Movie.fromJson(map, isTvShow: isTv);
+        })
+        .toList();
 
     // Сортировка по рейтингу (по убыванию)
     movies.sort((a, b) {

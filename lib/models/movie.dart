@@ -100,12 +100,14 @@ class CastMember {
   final String name;
   final String? character;
   final String? profilePath;
+  final int? order;
 
   const CastMember({
     required this.id,
     required this.name,
     this.character,
     this.profilePath,
+    this.order,
   });
 
   factory CastMember.fromJson(Map<String, dynamic> json) {
@@ -114,6 +116,7 @@ class CastMember {
       name: json['name'] as String? ?? 'Unknown',
       character: json['character'] as String?,
       profilePath: json['profile_path'] as String?,
+      order: json['order'] as int?,
     );
   }
 
