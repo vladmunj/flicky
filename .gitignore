@@ -45,3 +45,6 @@ app.*.map.json
 
 # .env файл с секретными ключами
 .env
+
+# Publish plan
+PUBLISH_PLAN.md
