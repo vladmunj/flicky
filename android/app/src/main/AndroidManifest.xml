@@ -2,6 +2,25 @@
     <!-- Разрешения -->
     <uses-permission android:name="android.permission.INTERNET"/>
 
+    <!-- Ограничение только смартфонами (исключаем планшеты, телевизоры, часы) -->
+    <supports-screens
+        android:smallScreens="true"
+        android:normalScreens="true"
+        android:largeScreens="false"
+        android:xlargeScreens="false"
+        android:anyDensity="true" />
+
+    <!-- Исключаем телевизоры и часы -->
+    <uses-feature
+        android:name="android.hardware.touchscreen"
+        android:required="true" />
+    <uses-feature
+        android:name="android.software.leanback"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.type.watch"
+        android:required="false" />
+
     <application
         android:label="Flicky"
         android:name="${applicationName}"
