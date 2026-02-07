@@ -1,0 +1,8 @@
+# Шаблон файла key.properties для подписи release сборки
+# Скопируйте этот файл в key.properties и заполните реальными значениями
+# ВАЖНО: key.properties должен быть в .gitignore и НЕ должен попадать в репозиторий!
+
+storePassword=your_keystore_password
+keyPassword=your_key_password
+keyAlias=upload
+storeFile=../upload-keystore.jks

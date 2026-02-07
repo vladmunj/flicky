@@ -46,5 +46,13 @@ app.*.map.json
 # .env файл с секретными ключами
 .env
 
+# Keystore файлы для подписи приложения
+android/key.properties
+*.jks
+*.keystore
+
 # Publish plan
 PUBLISH_PLAN.md
+
+# Environment setup
+ENV_SETUP.md
