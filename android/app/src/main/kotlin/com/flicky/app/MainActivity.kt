@@ -1,4 +1,4 @@
-package com.example.flicky
+package com.flicky.app
 
 import io.flutter.embedding.android.FlutterActivity
 
